@@ -1,0 +1,19 @@
+
+User Interface Testing Plan
+
+Team Member A is responsible for the command-line interface used
+by the user to run the program, handling and verifying user input
+and displaying the result.
+
+Planned Tests:
+
+1. Test that a UserInterface object can be created.
+
+2. Test that running the program with no arguments does not crash.
+
+3. Test that running the program with an invalid argument does not
+   crash.
+
+The user interface will not directly access data files or perform
+deciphering. All requests will be passed to the ProgramControl
+component, which returns the result to be displayed.

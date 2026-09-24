@@ -1,0 +1,11 @@
+File Handler Design plan
+
+Team member C is responsible for the access to data files in the TopSecret program. The files are located inside the "data" folder in the directory.
+
+Planed tests:
+1. Finding files located in the data directory.
+2. Returning a list of available files.
+3. Converting files numbers into corresponding file name.
+4. Reading files and returning it into a string.
+
+FileHandler will handle errors and will return null of that the program can determine how the error should be displayed.
