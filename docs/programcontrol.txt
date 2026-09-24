@@ -1,0 +1,23 @@
+
+Program Control Testing Plan
+
+Team Member B is responsible for connecting the command-line
+interface, file handler, and cipher functions.
+
+Planned Tests:
+
+1. Test that ProgramControl can request the list of available files.
+
+2. Test that ProgramControl can request the contents of a valid file.
+
+3. Test that requesting a file that does not exist is handled
+   without crashing the program.
+
+4. Test that ciphered file contents can be returned as readable text.
+
+5. Test that the default cipher key can be used.
+
+6. Test that an alternate cipher key can be supplied.
+
+ProgramControl will not directly access data files.
+All file access will be handled through the FileHandler component.
