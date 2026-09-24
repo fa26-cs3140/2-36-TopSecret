@@ -1,0 +1,37 @@
+CIPHER (Team Member D)
+
+What it does:
+Takes ciphered text and returns it deciphered using a key.
+
+Key format (ciphers/key.txt):
+Line 1: the real characters
+Line 2: the cipher character for each one, at the same position
+Example: 'a' is written as 'b', 'b' as 'c', and so on.
+Characters not in the key (spaces, punctuation) are not changed.
+
+How it works:
+The key is turned into a map from cipher character to real character.
+Each character of the text is looked up in the map one at a time.
+
+Validation:
+The key must have exactly 2 lines of the same length.
+If not, an IllegalArgumentException is thrown.
+An empty key is allowed and leaves the text unchanged.
+
+How it connects:
+Cipher does not read files. FileHandler reads the key file,
+ProgramControl passes the key text into new Cipher(key),
+then calls decipher(text) on the file contents.
+
+Methods:
+Cipher(String key)       builds the cipher and validates the key
+String decipher(String)  returns the deciphered text
+
+Tests (CipherTest.java):
+- Decipher a word
+- Decipher numbers
+- Characters not in the key stay the same
+- Alternate key works
+- Empty key leaves text unchanged
+- Key with one line is invalid
+- Key with different length lines is invalid
