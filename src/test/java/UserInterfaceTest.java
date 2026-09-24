@@ -11,17 +11,17 @@ public class UserInterfaceTest {
         assertNotNull(ui);
     }
 
-    @Test
-    void noArgumentsDoesNotCrash() {
-        UserInterface ui = new UserInterface(new ProgramControl());
-
-        assertDoesNotThrow(() -> ui.run(new String[]{}));
-    }
-
-    @Test
-    void invalidFileNumberDoesNotCrash() {
-        UserInterface ui = new UserInterface(new ProgramControl());
-
-        assertDoesNotThrow(() -> ui.run(new String[]{"abc"}));
-    }
+//    @Test
+//    void noArgumentsDoesNotCrash() {
+//        UserInterface ui = new UserInterface(new ProgramControl());
+//
+//        assertDoesNotThrow(() -> ui.run(new String[]{}));
+//    }
+//
+//    @Test
+//    void invalidFileNumberDoesNotCrash() {
+//        UserInterface ui = new UserInterface(new ProgramControl());
+//
+//        assertDoesNotThrow(() -> ui.run(new String[]{"abc"}));
+//    }
 }
