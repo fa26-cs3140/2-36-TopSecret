@@ -10,4 +10,13 @@ public class ProgramControlTest {
 
         assertNotNull(control);
     }
+
+    @Test
+    void missingFileReturnsNull() {
+        ProgramControl control = new ProgramControl();
+
+        String result = control.getFileContents("doesNotExist.txt");
+
+        assertNull(result);
+    }
 }
