@@ -2,7 +2,8 @@ Team Member C - File Handler
 
 Member C is responsible for all direct access to files in the TopSecret program.
 Mission files are located inside the "data" folder, and cipher key files are located inside the "ciphers" folder in the project directory.
-The FileHandler class will be responsible for finding available mission files, reading mission files, and reading cipher key files.
+
+The FileHandler class is responsible for finding available mission files, reading mission files, and reading cipher key files.
 It will return file contents as a String so that other parts of the program can use the data. The FileHandler will not decipher the contents or handle command-line input.
 
 Planned tests:

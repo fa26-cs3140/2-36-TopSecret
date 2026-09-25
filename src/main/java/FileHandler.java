@@ -28,12 +28,12 @@ public class FileHandler {
 
     public List<String> getAvailableFiles() {   // Returns a list of available mission files in the data folder
 
-        List<String> files = new ArrayList<>();
+        List<String> files = new ArrayList<>(); // Stores the available file names
 
         try {
             Files.list(dataFolder)
                     .filter(Files::isRegularFile)  // Only includes regular files
-                    .forEach(file ->
+                    .forEach(file -> // Adds each file name to the list
                             files.add(file.getFileName().toString()));
 
         } catch (IOException e) {
