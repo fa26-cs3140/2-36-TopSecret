@@ -1,11 +1,30 @@
-File Handler Design plan
+Team Member C - File Handler
 
-Team member C is responsible for the access to data files in the TopSecret program. The files are located inside the "data" folder in the directory.
+Member C is responsible for all direct access to files in the TopSecret program.
+Mission files are located inside the "data" folder, and cipher key files are located inside the "ciphers" folder in the project directory.
+The FileHandler class will be responsible for finding available mission files, reading mission files, and reading cipher key files.
+It will return file contents as a String so that other parts of the program can use the data. The FileHandler will not decipher the contents or handle command-line input.
 
-Planed tests:
+Planned tests:
 1. Finding files located in the data directory.
 2. Returning a list of available files.
-3. Converting files numbers into corresponding file name.
-4. Reading files and returning it into a string.
+3. Reading a mission file and returning its contents as a String.
+4. Attempting to read a mission file that does not exist.
+5. Reading the default cipher key file from the ciphers directory.
+6. Attempting to read a cipher key file that does not exist.
+7. Making sure file errors do not terminate the program.
 
-FileHandler will handle errors and will return null of that the program can determine how the error should be displayed.
+FileHandler will handle file access errors without ending the program.
+If a file cannot be read, FileHandler will return null so that ProgramControl can determine how the error should be displayed to the user.
+
+The FileHandler will contain the following methods:
+getAvailableFiles()
+// Returns a list of the available mission files in the data folder.
+
+readFile(String fileName)
+// Reads the requested mission file from the data folder and returns its
+  contents as a String.
+
+readCipherFile(String fileName)
+// Reads the requested cipher key from the ciphers folder and returns its
+  contents as a String.
