@@ -13,16 +13,16 @@ public class FileHandler {
     public String readDataFile(String fileName) { // Reads a mission file from the data folder and return its contents
         try {
             return Files.readString(dataFolder.resolve(fileName));
-        } catch (IOException e) {
-            return null; // Return null if the file can not be found
+        } catch (Exception e) {
+            return null; // Return null if the file can not be found or the name is invalid
         }
     }
 
     public String readCipherFile(String fileName) {    // Reads a cipher key from the ciphers folder
         try {
             return Files.readString(cipherFolder.resolve(fileName));
-        } catch (IOException e) {
-            return null; // Return null if the file can not be found
+        } catch (Exception e) {
+            return null; // Return null if the file can not be found or the name is invalid
         }
     }
 
