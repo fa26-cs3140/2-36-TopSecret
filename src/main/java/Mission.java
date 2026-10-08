@@ -17,4 +17,6 @@ public class Mission {
     // The Getter Methods
     public int getId() { return id; }
     public String getTitle() { return title; }
+    public String getBrief() { return brief; }
+    public String getDate() { return date; }
 }
