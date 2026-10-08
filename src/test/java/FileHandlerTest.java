@@ -7,7 +7,7 @@ public class FileHandlerTest {
     void readDataFileReturnsContents() { // Tests that an existing data file can be read
         FileHandler handler = new FileHandler();
 
-        String result = handler.readDataFile("filea.txt");
+        String result = handler.readDataFile("carnivore.cip");
 
         assertNotNull(result);
     }
