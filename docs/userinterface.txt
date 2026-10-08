@@ -1,4 +1,3 @@
-
 User Interface Testing Plan
 
 Team Member A is responsible for the command-line interface used
@@ -7,13 +6,19 @@ and displaying the result.
 
 Planned Tests:
 
-1. Test that a UserInterface object can be created.
+1. Test that a UserInterface object can be made.
 
-2. Test that running the program with no arguments does not crash.
+2. Test that running the program with no input does not crash.
 
-3. Test that running the program with an invalid argument does not
+3. Test that running the program with letters instead of a number
+   does not crash.
+
+4. Test that asking for a file number that does not exist does not
    crash.
 
-The user interface will not directly access data files or perform
-deciphering. All requests will be passed to the ProgramControl
-component, which returns the result to be displayed.
+5. Test that asking for a file number that does exist does not
+   crash.
+
+The user interface does not read files or decipher text itself.
+It sends requests to ProgramControl, which sends back the result to
+be shown to the user.
