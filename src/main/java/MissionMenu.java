@@ -4,7 +4,7 @@ import java.util.Scanner;
 
 // Interactive menu shown after the user logs in (Member D).
 // Keeps running until the user chooses Exit.
-public class MissionMenu {
+public class    MissionMenu {
 
     private final MissionRepository missions;
     private final MissionSearch search;

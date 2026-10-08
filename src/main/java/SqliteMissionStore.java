@@ -9,6 +9,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
+import java.nio.charset.StandardCharsets;
 
 /**
  * SQLite implementation of MissionStore.
@@ -118,7 +119,7 @@ public class SqliteMissionStore implements MissionStore {
     static List<Mission> readTsv(Path file) {
         List<Mission> missions = new ArrayList<>();
         try {
-            for (String line : Files.readAllLines(file)) {
+            for (String line : Files.readAllLines(file, StandardCharsets.UTF_8)) {
                 String[] parts = line.split("\t", -1);
                 if (parts.length != 3 || line.contains("Title\tDate")) {
                     continue; // header, blank line, or wrong number of columns
