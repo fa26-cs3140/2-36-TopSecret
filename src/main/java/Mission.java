@@ -6,7 +6,7 @@ public class Mission {
     private final String brief;
     private final String date;
 
-    // Constructor
+    // The Constructor
     public Mission(int id, String title, String brief, String date) {
         this.id = id;
         this.title = title;
@@ -14,7 +14,7 @@ public class Mission {
         this.date = date;
     }
 
-    // Getter Methods
+    // The Getter Methods
     public int getId() { return id; }
     public String getTitle() { return title; }
 }

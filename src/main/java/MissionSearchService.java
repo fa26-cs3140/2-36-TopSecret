@@ -5,7 +5,7 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
-// Implements the search functionality and case-insensitive searches
+// This implements the search functionality and case-insensitive searches
 public class MissionSearchService implements MissionSearch {
     private final Connection connection;
 
