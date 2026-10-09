@@ -1,0 +1,29 @@
+Database Implementation & Schema Documentation
+
+Team Member A is responsible for adding SQLite to the project, managing connections,
+initializing the database table, and importing plain-text mission reports from TSV files.
+
+SQL Schema Definition:
+
+CREATE TABLE IF NOT EXISTS missions (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    title TEXT NOT NULL,
+    brief TEXT NOT NULL,
+    date TEXT NOT NULL,
+    UNIQUE (title, date)
+);
+
+Schema Details:
+- id (INTEGER): Primary key, automatically increments.
+- title (TEXT): Plain-text mission title.
+- brief (TEXT): Plain-text body of the mission brief.
+- date (TEXT): Plain-text date of the mission.
+- UNIQUE (title, date): Constraint preventing duplicate mission imports.
+
+Planned Tests:
+1. Test that a new database is created empty.
+2. Test that importFromTsv successfully populates mission records.
+3. Test that re-importing the same TSV ignores duplicates.
+4. Test that getAllMissions retrieves records ordered by ID.
+5. Test that searchBriefs performs case-insensitive brief keyword searches.
+6. Test that importing the production TSV loads all 100 missions and persists across restarts.
