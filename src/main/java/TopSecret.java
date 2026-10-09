@@ -37,11 +37,12 @@ public class TopSecret {
             System.out.println("Access granted.");
 
             // Start Team Member D's interactive mission menu.
-            ProgramControl programControl = new ProgramControl();
-            UserInterface ui = new UserInterface(programControl);
-            ui.run(args);
+            // The database (Member A) supplies the missions and the search.
+            MissionStore store = new SqliteMissionStore();
+            MissionMenu menu = new MissionMenu(store, store, scanner, System.out);
+            menu.run();
 
-        } catch (IOException | IllegalArgumentException e) {
+        } catch (IOException | IllegalArgumentException | IllegalStateException e) {
             System.out.println(
                     "Error: " + e.getMessage()
             );

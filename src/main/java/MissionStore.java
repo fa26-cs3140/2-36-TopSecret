@@ -5,7 +5,7 @@ import java.util.List;
  * The only way the rest of the system reads mission briefs.
  * This uses Interface to connect separate parts of the system,
  */
-public interface MissionStore {
+public interface MissionStore extends MissionRepository, MissionSearch {
 
     // All missions ordered by id. Empty list if none.
     List<Mission> getAllMissions();

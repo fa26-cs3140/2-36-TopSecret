@@ -116,7 +116,7 @@ public class CredentialManager {
 
         try {
             String stored = decryptCredentials();
-            String[] parts = stored.split("\n", -1);
+            String[] parts = stored.split("\\R", -1);
 
             return parts.length == 2
                     && isValidUsername(parts[0])
@@ -136,7 +136,7 @@ public class CredentialManager {
             return false;
         }
 
-        String[] parts = decryptCredentials().split("\n", -1);
+        String[] parts = decryptCredentials().split("\\R", -1);
 
         return parts[0].equals(username)
                 && parts[1].equals(password);

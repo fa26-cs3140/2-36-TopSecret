@@ -28,4 +28,7 @@ application {
 tasks.jar {
     archiveFileName.set("TopSecret.jar")
     manifest { attributes["Main-Class"] = "TopSecret" }
+    // Bundle the SQLite driver so "java -jar TopSecret.jar" can open the database
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    from(configurations.runtimeClasspath.get().map { if (it.isDirectory) it else zipTree(it) })
 }

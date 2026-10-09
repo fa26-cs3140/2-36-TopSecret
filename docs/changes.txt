@@ -1,0 +1,35 @@
+CHANGE NOTES - Homework 4
+
+Homework 3 -> Homework 4
+
+Program behavior
+  - The program is now interactive. After login it shows a menu (list, read,
+    search, exit) and keeps running until the agent chooses Exit.
+  - A login is required. On the first run the program asks the agent to
+    create a username and password, saves them ciphered in credentials.cip,
+    and exits. Later runs ask for the username and password.
+  - "java TopSecret --change-password" changes the password after the new
+    password is entered twice.
+  - Mission briefs now come from a SQLite database instead of the text files
+    in data/. The database is created in database/missions.db on first run
+    and loaded from database/mission_briefs.tsv.
+
+New classes
+  - Mission                   one mission record (id, title, brief, date)
+  - MissionStore (interface)  how the rest of the system reads missions
+  - SqliteMissionStore        the only class that accesses the database (A)
+  - CredentialManager         reads, writes, and checks credentials.cip (B)
+  - LoginHandler              login, first-run setup, password change (B)
+  - MissionSearch (interface) and MissionSearchService  search feature (C)
+  - MissionRepository (interface) and MissionMenu  interactive menu (D)
+
+Interfaces
+  - MissionStore extends MissionRepository and MissionSearch, so the menu
+    works with any store and never touches the database directly.
+
+Kept from Homework 3
+  - Cipher is reused to decipher the credential file.
+  - FileHandler, ProgramControl, and UserInterface remain with their tests.
+
+Docs added
+  - schema.txt (database table), team.txt, uml_design.png, this file.

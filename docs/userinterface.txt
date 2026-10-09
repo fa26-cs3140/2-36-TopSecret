@@ -1,24 +1,53 @@
-User Interface Testing Plan
+USER INTERFACE (Team Member D)
 
-Team Member A is responsible for the command-line interface used
-by the user to run the program, handling and verifying user input
-and displaying the result.
+What it does:
+After the agent logs in, the program shows an interactive menu. The menu
+keeps running until the agent chooses Exit.
 
-Planned Tests:
+How to run:
+  ./gradlew run        (or: java -jar build/libs/TopSecret.jar)
+  Log in with your username and password, then use the menu below.
 
-1. Test that a UserInterface object can be made.
+Menu options:
+  1. List missions     Shows every mission title with a number.
+  2. Read a mission    Asks for a mission number, then shows its title,
+                       date, and brief.
+  3. Search missions   Asks for a word or phrase and lists the titles of
+                       missions whose brief contains it (case is ignored).
+                       Prints "No matches found." if nothing matches.
+  4. Exit              Prints "Goodbye." and ends the program.
 
-2. Test that running the program with no input does not crash.
+After options 1 to 3, the menu is shown again.
 
-3. Test that running the program with letters instead of a number
-   does not crash.
+Input errors (the program never crashes on bad input):
+  - A menu choice other than 1 to 4: "Invalid choice. Enter 1, 2, 3, or 4."
+  - A mission number that is not a number: "Error: 'abc' is not a number."
+  - A mission number out of range: "Error: No mission with number 99."
 
-4. Test that asking for a file number that does not exist does not
-   crash.
+Design:
+  MissionMenu does not touch the database. It talks to the rest of the
+  system only through two interfaces:
+    MissionRepository  List<Mission> getAllMissions()
+    MissionSearch      List<Mission> searchBriefs(String query)
+  MissionStore extends both, and SqliteMissionStore (Member A) implements
+  it, so TopSecret passes the same store in for both.
+  The menu takes a Scanner and PrintStream instead of using System.in and
+  System.out directly, so tests can type input and check the output.
 
-5. Test that asking for a file number that does exist does not
-   crash.
-
-The user interface does not read files or decipher text itself.
-It sends requests to ProgramControl, which sends back the result to
-be shown to the user.
+Tests:
+  MissionMenuTest (unit tests, fake database and search):
+    - Exit ends the program
+    - List shows numbered titles
+    - Read shows the mission brief
+    - Menu is shown again after reading
+    - Bad mission number shows an error
+    - Non-number shows an error
+    - Invalid menu choice shows an error
+    - Search shows matches
+    - Search with no matches says so
+    - Empty database shows a message
+  MissionMenuIntegrationTest (real SQLite database and mission_briefs.tsv):
+    - List shows all 100 missions from the database
+    - Read shows a brief from the database
+    - Search finds matches in the database, ignoring case
+    - Search with no matches says so
