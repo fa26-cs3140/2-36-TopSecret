@@ -44,10 +44,8 @@ public class ProgramControlTest {
     void alternateKeyCanBeUsed() {
         ProgramControl control = new ProgramControl();
 
-        String key = "abc\nxyz";
+        String result = control.decipherFile("carnivore.cip", "key.txt");
 
-        String result = control.decipherFile("doesNotExist.cip", key);
-
-        assertNull(result);
+        assertTrue(result.startsWith("Carnivore"));
     }
 }

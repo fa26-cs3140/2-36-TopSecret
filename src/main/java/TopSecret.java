@@ -13,7 +13,7 @@ public class TopSecret {
 
         try {
 
-            // Allow users to change their password.
+            // Allow the user to change their password.
             if (args.length == 1
                     && args[0].equals("--change-password")) {
                 loginHandler.changePassword();
@@ -26,7 +26,7 @@ public class TopSecret {
                 return;
             }
 
-            // Require authentication before mission access.
+            // Require login before accessing mission briefs.
             boolean loggedIn = loginHandler.authenticate();
 
             if (!loggedIn) {
@@ -35,12 +35,14 @@ public class TopSecret {
 
             System.out.println("Access granted.");
 
-            // Team Member D will connect the mission menu here
-            // once UserInterface.java has been updated.
+            // Start Team Member D's interactive mission menu.
+            ProgramControl programControl = new ProgramControl();
+            UserInterface ui = new UserInterface(programControl);
+            ui.run(args);
 
         } catch (IOException | IllegalArgumentException e) {
             System.out.println(
-                    "Authentication error: " + e.getMessage()
+                    "Error: " + e.getMessage()
             );
         }
     }

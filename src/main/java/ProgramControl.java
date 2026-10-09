@@ -20,32 +20,23 @@ public class ProgramControl {
 
     // Get and decipher a file using the default key
     public String decipherFile(String fileName) {
-        String contents = fileHandler.readDataFile(fileName);
-
-        if (contents == null) {
-            return null;
-        }
-
-        String key = fileHandler.readCipherFile("key.txt");
-
-        if (key == null) {
-            return null;
-        }
-
-        Cipher cipher = new Cipher(key);
-        return cipher.decipher(contents);
+        return decipherFile(fileName, "key.txt");
     }
 
-    // Get and decipher a file using an alternate key
-    public String decipherFile(String fileName, String key) {
+    // Get and decipher a file using a key file from the ciphers folder
+    public String decipherFile(String fileName, String keyFileName) {
         String contents = fileHandler.readDataFile(fileName);
+        String key = fileHandler.readCipherFile(keyFileName);
 
-        if (contents == null) {
+        if (contents == null || key == null) {
             return null;
         }
 
-        Cipher cipher = new Cipher(key);
-        return cipher.decipher(contents);
+        try {
+            Cipher cipher = new Cipher(key);
+            return cipher.decipher(contents);
+        } catch (IllegalArgumentException e) {
+            return null; // bad key: the UI shows an error instead of crashing
+        }
     }
 }
-
