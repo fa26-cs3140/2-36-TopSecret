@@ -1,4 +1,5 @@
 import java.io.IOException;
+import java.util.NoSuchElementException;
 import java.util.Scanner;
 
 public class TopSecret {
@@ -13,7 +14,7 @@ public class TopSecret {
 
         try {
 
-            // Allow the user to change their password.
+            // Allow users to change their password.
             if (args.length == 1
                     && args[0].equals("--change-password")) {
                 loginHandler.changePassword();
@@ -43,6 +44,12 @@ public class TopSecret {
         } catch (IOException | IllegalArgumentException e) {
             System.out.println(
                     "Error: " + e.getMessage()
+            );
+
+        } catch (NoSuchElementException e) {
+            // Handle missing keyboard input during automated tests.
+            System.out.println(
+                    "No input available. Login cancelled."
             );
         }
     }
