@@ -4,18 +4,31 @@ import java.util.Scanner;
 
 // Interactive menu shown after the user logs in (Member D).
 // Keeps running until the user chooses Exit.
-public class    MissionMenu {
+public class MissionMenu {
 
     private final MissionRepository missions;
     private final MissionSearch search;
     private final Scanner in;
     private final PrintStream out;
+    private final AuditLog audit;
+    private final AccountManager accounts;
+    private final UserAccount user;
 
+    // Homework 4 menu: no audit log and no account options
     public MissionMenu(MissionRepository missions, MissionSearch search, Scanner in, PrintStream out) {
+        this(missions, search, in, out, null, null, null);
+    }
+
+    // Homework 5 menu: records reads and creates in the audit log for the logged-in user
+    public MissionMenu(MissionRepository missions, MissionSearch search, Scanner in, PrintStream out,
+                       AuditLog audit, AccountManager accounts, UserAccount user) {
         this.missions = missions;
         this.search = search;
         this.in = in;
         this.out = out;
+        this.audit = audit;
+        this.accounts = accounts;
+        this.user = user;
     }
 
     public void run() {
@@ -33,6 +46,13 @@ public class    MissionMenu {
                     out.println("Goodbye.");
                     return;
                 }
+                case "5" -> {
+                    if (accounts != null) {
+                        addUser();
+                    } else {
+                        out.println("Invalid choice. Enter 1, 2, 3, or 4.");
+                    }
+                }
                 default -> out.println("Invalid choice. Enter 1, 2, 3, or 4.");
             }
         }
@@ -44,6 +64,9 @@ public class    MissionMenu {
         out.println("2. Read a mission");
         out.println("3. Search missions");
         out.println("4. Exit");
+        if (accounts != null) {
+            out.println("5. Add user");
+        }
         out.print("Choose an option: ");
     }
 
@@ -79,6 +102,29 @@ public class    MissionMenu {
         Mission m = all.get(number - 1);
         out.println(m.getTitle() + " (" + m.getDate() + ")");
         out.println(m.getBrief());
+        logEvent(AuditLog.READ, "Mission brief #" + m.getId() + ": " + m.getTitle());
+    }
+
+    void addUser() {
+        out.print("New username: ");
+        if (!in.hasNextLine()) {
+            return;
+        }
+        String name = in.nextLine().trim();
+        try {
+            accounts.addUser(user, name);
+            out.println("User '" + name + "' added. They will create a password at first login.");
+            logEvent(AuditLog.CREATE, "User account: " + name);
+        } catch (IllegalArgumentException | IllegalStateException e) {
+            out.println("Error: " + e.getMessage());
+        }
+    }
+
+    // Records an event in the audit log, if this menu has one
+    private void logEvent(String action, String item) {
+        if (audit != null && user != null) {
+            audit.record(user.getUsername(), action, item);
+        }
     }
 
     void searchMissions() {

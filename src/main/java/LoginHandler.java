@@ -1,91 +1,100 @@
-import java.io.IOException;
+import java.io.PrintStream;
 import java.util.Scanner;
 
+// Console prompts for accounts (Member D, built on Member B's Homework 4 login):
+// first-run setup, login, first-login password, and changing a password.
 public class LoginHandler {
 
-    private final CredentialManager manager;
-    private final Scanner scanner;
+    private final AccountManager accounts;
+    private final Scanner in;
+    private final PrintStream out;
 
-    public LoginHandler(CredentialManager manager, Scanner scanner) {
-        this.manager = manager;
-        this.scanner = scanner;
+    public LoginHandler(AccountManager accounts, Scanner in, PrintStream out) {
+        this.accounts = accounts;
+        this.in = in;
+        this.out = out;
     }
 
-    // Account setup on first run, login on later runs.
-    public boolean authenticate() throws IOException {
-
-        if (!manager.credentialsExist()) {
-            System.out.println("No credentials found.");
-            System.out.println("Create a new account.");
-
-            System.out.print("New username: ");
-            String username = scanner.nextLine();
-
-            System.out.print("New password: ");
-            String password = scanner.nextLine();
-
-            if (!manager.isValidUsername(username)
-                    || !manager.isValidPassword(password)) {
-                System.out.println("Invalid username or password.");
-                return false;
-            }
-
-            manager.createCredentials(username, password);
-
-            System.out.println("Account created successfully.");
-            System.out.println("Restart the program to log in.");
-            return false;
+    // Returns the logged-in user, or null if login did not succeed.
+    // With no accounts yet, creates the first (admin) account and returns null
+    // so the program exits, as in Homework 4.
+    public UserAccount authenticate() {
+        if (!accounts.hasAccounts()) {
+            createFirstAccount();
+            return null;
         }
 
-        if (!manager.hasValidCredentialFile()) {
-            System.out.println("Invalid credentials file.");
-            return false;
+        String username = ask("Username: ");
+        if (username == null) {
+            return null;
         }
 
-        System.out.print("Username: ");
-        String username = scanner.nextLine();
+        if (accounts.needsPassword(username)) {
+            return setFirstPassword(username);
+        }
 
-        System.out.print("Password: ");
-        String password = scanner.nextLine();
+        String password = ask("Password: ");
+        UserAccount user = password == null ? null : accounts.login(username, password);
+        if (user == null) {
+            out.println("Incorrect username or password.");
+            return null;
+        }
+        out.println("Login successful!");
+        return user;
+    }
 
-        if (manager.login(username, password)) {
-            System.out.println("Login successful!");
+    // For: java TopSecret --change-password
+    public boolean changePassword() {
+        String username = ask("Username: ");
+        String oldPassword = ask("Current password: ");
+        String newPassword = ask("New password: ");
+        String confirm = ask("Confirm new password: ");
+        if (confirm != null && accounts.changePassword(username, oldPassword, newPassword, confirm)) {
+            out.println("Password changed successfully.");
             return true;
         }
-
-        System.out.println("Incorrect username or password.");
+        out.println("Password change failed. " + AccountManager.PASSWORD_RULE);
         return false;
     }
 
-    // Command-line password changing.
-    public void changePassword() throws IOException {
-
-        if (!manager.hasValidCredentialFile()) {
-            System.out.println("No valid credentials available.");
+    private void createFirstAccount() {
+        out.println("No user accounts found. Create the first account (it will be an admin).");
+        out.println(AccountManager.USERNAME_RULE);
+        out.println(AccountManager.PASSWORD_RULE);
+        String username = ask("New username: ");
+        String password = ask("New password: ");
+        String confirm = ask("Confirm password: ");
+        if (confirm == null) {
             return;
         }
-
-        System.out.print("Username: ");
-        String username = scanner.nextLine();
-
-        System.out.print("Current password: ");
-        String oldPassword = scanner.nextLine();
-
-        System.out.print("New password: ");
-        String newPassword = scanner.nextLine();
-
-        System.out.print("Confirm new password: ");
-        String confirmation = scanner.nextLine();
-
-        if (manager.changePassword(
-                username,
-                oldPassword,
-                newPassword,
-                confirmation)) {
-
-            System.out.println("Password changed successfully.");
-        } else {
-            System.out.println("Password change failed.");
+        if (!password.equals(confirm)) {
+            out.println("Passwords do not match.");
+            return;
         }
+        try {
+            accounts.createFirstAccount(username, password);
+            out.println("Account created. Restart the program to log in.");
+        } catch (IllegalArgumentException e) {
+            out.println(e.getMessage());
+        }
+    }
+
+    private UserAccount setFirstPassword(String username) {
+        out.println("Welcome, " + username + ". Create your password.");
+        out.println(AccountManager.PASSWORD_RULE);
+        String password = ask("New password: ");
+        String confirm = ask("Confirm password: ");
+        if (confirm != null && accounts.setInitialPassword(username, password, confirm)) {
+            out.println("Password set. Login successful!");
+            return accounts.findUser(username);
+        }
+        out.println("Password not set. Passwords must match and follow the rules.");
+        return null;
+    }
+
+    // Prints the prompt and reads a line, or returns null if there is no more input
+    private String ask(String prompt) {
+        out.print(prompt);
+        return in.hasNextLine() ? in.nextLine() : null;
     }
 }

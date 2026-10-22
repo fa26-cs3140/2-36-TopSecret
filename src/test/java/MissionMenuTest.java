@@ -2,8 +2,10 @@ import org.junit.jupiter.api.Test;
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
 import java.util.List;
+import java.util.ArrayList;
 import java.util.Scanner;
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
 
 class MissionMenuTest {
 
@@ -82,5 +84,64 @@ class MissionMenuTest {
         ByteArrayOutputStream output = new ByteArrayOutputStream();
         new MissionMenu(List::of, fakeSearch, new Scanner("1\n4\n"), new PrintStream(output)).run();
         assertTrue(output.toString().contains("No missions available."));
+    }
+
+    // ---------- Homework 5: audit log and adding users (Mockito mocks) ----------
+
+    private final AuditLog audit = mock(AuditLog.class);
+    private final UserStore users = mock(UserStore.class);
+    private final UserAccount agent = new UserAccount("agent", "Secret1", true);
+
+    private String runLoggedIn(String input) {
+        when(users.loadAll()).thenReturn(new ArrayList<>(List.of(agent)));
+        ByteArrayOutputStream output = new ByteArrayOutputStream();
+        new MissionMenu(fakeRepo, fakeSearch, new Scanner(input), new PrintStream(output),
+                audit, new AccountManager(users), agent).run();
+        return output.toString();
+    }
+
+    @Test
+    void readingAMissionIsWrittenToAuditLog() {
+        runLoggedIn("2\n2\n4\n");
+        verify(audit).record("agent", AuditLog.READ, "Mission brief #2: The Munich Lead");
+    }
+
+    @Test
+    void listingAndSearchingAreNotLoggedAsReads() {
+        runLoggedIn("1\n3\nsafehouse\n4\n");
+        verify(audit, never()).record(anyString(), anyString(), anyString());
+    }
+
+    @Test
+    void addUserOptionShownWhenLoggedIn() {
+        assertTrue(runLoggedIn("4\n").contains("5. Add user"));
+        assertFalse(runWith("4\n").contains("5. Add user"));
+    }
+
+    @Test
+    void addUserSavesAccountAndLogsCreate() {
+        String out = runLoggedIn("5\nbob_2\n4\n");
+        assertTrue(out.contains("User 'bob_2' added."));
+        verify(users).saveAll(anyList());
+        verify(audit).record("agent", AuditLog.CREATE, "User account: bob_2");
+    }
+
+    @Test
+    void addUserWithBadNameShowsErrorAndLogsNothing() {
+        String out = runLoggedIn("5\nagent\n4\n");
+        assertTrue(out.contains("Error: Username already exists"));
+        verify(users, never()).saveAll(anyList());
+        verify(audit, never()).record(anyString(), anyString(), anyString());
+    }
+
+    @Test
+    void addUserWithNoInputReturnsToMenu() {
+        runLoggedIn("5\n");
+        verify(users, never()).saveAll(anyList());
+    }
+
+    @Test
+    void optionFiveIsInvalidWithoutAccounts() {
+        assertTrue(runWith("5\n4\n").contains("Invalid choice"));
     }
 }

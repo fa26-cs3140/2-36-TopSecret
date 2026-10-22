@@ -15,10 +15,13 @@ dependencies {
     testImplementation(platform("org.junit:junit-bom:5.10.0"))
     testImplementation("org.junit.jupiter:junit-jupiter")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+    testImplementation("org.mockito:mockito-core:5.14.2")
 }
 
 tasks.test {
     useJUnitPlatform()
+    // Lets Mockito run on newer Java versions (21 to 26)
+    jvmArgs("-XX:+EnableDynamicAgentLoading", "-Dnet.bytebuddy.experimental=true")
 }
 
 application {

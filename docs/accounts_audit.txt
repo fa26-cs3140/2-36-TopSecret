@@ -1,0 +1,42 @@
+USER ACCOUNTS AND AUDIT LOG (Team Member D)
+
+User accounts
+  - Accounts are saved in users.cip (project root), ciphered with ciphers/key.txt.
+    If ciphers/key.txt is missing, the same default key built into the program is used.
+  - Each line before ciphering: username <tab> password <tab> ADMIN or USER.
+    An empty password means the user has not created one yet.
+  - First run (no users.cip): the program asks for a username and password,
+    creates the first account as an admin, and exits. Run it again to log in.
+  - Username rule: at least 3 characters; letters, numbers, - and _ only.
+  - Password rule: at least 5 characters, with uppercase and lowercase letters.
+  - A logged-in user adds a user with menu option 5, entering only a username.
+    The new user creates their own password the first time they log in.
+  - Change a password: ./gradlew run --args="--change-password"
+
+Audit log
+  - Stored in the database (database/missions.db), table audit_log:
+      id         INTEGER PRIMARY KEY AUTOINCREMENT
+      timestamp  TEXT NOT NULL   (e.g. 2026-10-22T13:45:30)
+      username   TEXT NOT NULL   (who)
+      action     TEXT NOT NULL   (READ or CREATE)
+      item       TEXT NOT NULL   (what, e.g. "Mission brief #3: Project Bluebird")
+  - The UI calls AuditLog.record(username, action, item) whenever content is read
+    or created, and AuditLog.getEntries() to show the log.
+
+Classes
+  UserAccount            username, password, admin flag (Member A uses the flag)
+  UserStore (interface)  loadAll / saveAll accounts
+  CipheredUserStore      UserStore saved in the ciphered users.cip file
+  AccountManager         account rules: first account, add user, login, passwords
+  LoginHandler           console prompts for login, first-login password, change password
+  AuditLog (interface)   record / getEntries, with READ and CREATE actions
+  AuditEntry             one audit log row
+  SqliteAuditLog         AuditLog stored in SQLite
+
+Tests
+  Unit (Mockito mocks UserStore and AuditLog):
+    UserAccountTest, AuditEntryTest, AccountManagerTest, CipheredUserStoreTest,
+    SqliteAuditLogTest, LoginHandlerTest, MissionMenuTest, CipherTest
+  Integration:
+    AccountManagerCipheredUserStoreTest, LoginHandlerAccountManagerTest,
+    MissionMenuSqliteAuditLogTest

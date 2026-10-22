@@ -41,4 +41,16 @@ class CipherTest {
     void keyWithDifferentLengthLinesIsInvalid() {
         assertThrows(IllegalArgumentException.class, () -> new Cipher("abcd\nbca"));
     }
+
+    @Test
+    void encipherWord() {
+        assertEquals("Dbsojwpsf", new Cipher(KEY).encipher("Carnivore"));
+    }
+
+    @Test
+    void encipherThenDecipherGivesOriginalText() {
+        Cipher c = new Cipher(KEY);
+        String text = "agent\tSecret123\tADMIN";
+        assertEquals(text, c.decipher(c.encipher(text)));
+    }
 }
