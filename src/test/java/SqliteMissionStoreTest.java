@@ -120,4 +120,10 @@ class SqliteMissionStoreTest {
         assertTrue(store.searchBriefs("zzzzqq").isEmpty());
         assertTrue(store.searchBriefs("  ").isEmpty());
     }
+
+    @Test
+    void defaultConstructorLoadsTheRealTsv() {
+        // uses database/missions.db (git-ignored) and database/mission_briefs.tsv
+        assertEquals(100, new SqliteMissionStore().getAllMissions().size());
+    }
 }

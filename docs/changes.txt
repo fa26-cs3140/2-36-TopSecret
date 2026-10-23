@@ -1,3 +1,38 @@
+CHANGE NOTES - Homework 5
+
+Homework 4 -> Homework 5
+
+Program behavior
+  - After login, a top menu offers the existing mission menu or the Homework 5
+    records menu (Mission Briefs, Agents, Facilities).
+  - Each record type can be listed, read, added, updated, and deleted. New and
+    updated items show up in the list right away.
+  - Deletes that would leave orphaned data are refused with a clear message.
+  - Sample facilities, agents, and briefs are loaded from database/*.tsv on first run.
+  - Multiple user accounts in a ciphered users.cip (replaces credentials.cip).
+    The first account is an admin. Admins add users by username only; the new
+    user creates their own password at first login.
+  - Passwords need at least 5 characters with uppercase and lowercase letters.
+    Usernames need at least 3 characters: letters, numbers, - and _.
+  - Access levels: standard users can only read. Admins can add, update, delete,
+    add users, view the audit log, and promote/demote other users (not themselves).
+    Users never see options they cannot use.
+  - Audit log in the database: every read, create, update, and delete, with who and when.
+
+New classes
+  - Brief, Agent, Facility, ModelDatabase (C)
+  - Homework5Menu (B)
+  - UserAccount, UserStore, CipheredUserStore, AccountManager (incl. setAdmin for A),
+    AuditLog, AuditEntry, SqliteAuditLog (D)
+
+Removed
+  - CredentialManager and credentials.cip (single-user login, replaced by multiple accounts)
+
+Testing
+  - Mockito is used in unit tests (mocked UserStore and AuditLog).
+  - Every class has unit tests; integration tests are named after the classes
+    they connect, e.g. Homework5MenuSqliteAuditLogTest, AccountManagerCipheredUserStoreTest.
+
 CHANGE NOTES - Homework 4
 
 Homework 3 -> Homework 4

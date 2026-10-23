@@ -9,16 +9,22 @@ User accounts
     creates the first account as an admin, and exits. Run it again to log in.
   - Username rule: at least 3 characters; letters, numbers, - and _ only.
   - Password rule: at least 5 characters, with uppercase and lowercase letters.
-  - A logged-in user adds a user with menu option 5, entering only a username.
+  - An admin adds a user (records menu option 5), entering only a username.
     The new user creates their own password the first time they log in.
   - Change a password: ./gradlew run --args="--change-password"
+
+Access levels (used by Member A's rules)
+  - The first account is an admin; added users are standard.
+  - AccountManager.setAdmin(actor, username, makeAdmin) promotes or demotes a user.
+    Only admins may do it, and never to themselves.
+  - Standard users only read; admin-only menu options are hidden from them.
 
 Audit log
   - Stored in the database (database/missions.db), table audit_log:
       id         INTEGER PRIMARY KEY AUTOINCREMENT
       timestamp  TEXT NOT NULL   (e.g. 2026-10-22T13:45:30)
       username   TEXT NOT NULL   (who)
-      action     TEXT NOT NULL   (READ or CREATE)
+      action     TEXT NOT NULL   (READ, CREATE, UPDATE or DELETE)
       item       TEXT NOT NULL   (what, e.g. "Mission brief #3: Project Bluebird")
   - The UI calls AuditLog.record(username, action, item) whenever content is read
     or created, and AuditLog.getEntries() to show the log.

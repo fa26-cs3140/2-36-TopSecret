@@ -42,6 +42,7 @@ public class Homework5Menu {
             if (admin) {
                 out.println("4. View Audit Log");
                 out.println("5. Add User");
+                out.println("6. Manage User Access");
             }
 
             out.println("0. Back / Exit");
@@ -59,6 +60,10 @@ public class Homework5Menu {
                 }
                 case "5" -> {
                     if (admin) addUser();
+                    else out.println("Invalid choice.");
+                }
+                case "6" -> {
+                    if (admin) manageAccess();
                     else out.println("Invalid choice.");
                 }
                 case "0" -> {
@@ -84,6 +89,7 @@ public class Homework5Menu {
             if (admin) {
                 out.println("3. Add an entry");
                 out.println("4. Update an entry");
+                out.println("5. Delete an entry");
             }
 
             out.println("0. Back");
@@ -103,6 +109,10 @@ public class Homework5Menu {
                         if (admin) updateEntry(type);
                         else out.println("Invalid choice.");
                     }
+                    case "5" -> {
+                        if (admin) deleteEntry(type);
+                        else out.println("Invalid choice.");
+                    }
                     case "0" -> {
                         return;
                     }
@@ -110,7 +120,7 @@ public class Homework5Menu {
                 }
             } catch (SQLException e) {
                 out.println("Database error: " + e.getMessage());
-            } catch (IllegalArgumentException e) {
+            } catch (IllegalArgumentException | IllegalStateException e) {
                 out.println("Error: " + e.getMessage());
             }
         }
@@ -391,7 +401,7 @@ public class Homework5Menu {
                 id, title, date, text);
 
         if (updated) {
-            auditCreate("Updated Brief #" + id);
+            auditUpdate("Brief #" + id);
             out.println("Brief updated successfully!");
             listEntries("Briefs");
         } else {
@@ -424,7 +434,7 @@ public class Homework5Menu {
                 id, name, abbreviation);
 
         if (updated) {
-            auditCreate("Updated Facility #" + id);
+            auditUpdate("Facility #" + id);
             out.println("Facility updated successfully!");
             listEntries("Facilities");
         } else {
@@ -486,7 +496,7 @@ public class Homework5Menu {
                 id, name, dob, dod, notes, facilityId);
 
         if (updated) {
-            auditCreate("Updated Agent #" + id);
+            auditUpdate("Agent #" + id);
             out.println("Agent updated successfully!");
             listEntries("Agents");
         } else {
@@ -500,6 +510,72 @@ public class Homework5Menu {
 
     private void auditCreate(String item) {
         audit.record(user.getUsername(), AuditLog.CREATE, item);
+    }
+
+    private void auditUpdate(String item) {
+        audit.record(user.getUsername(), AuditLog.UPDATE, item);
+    }
+
+    // HOMEWORK 5: DELETE ENTRY (the database refuses deletes that would leave orphaned data)
+
+    private void deleteEntry(String type) throws SQLException {
+        String input = prompt("Enter entry ID to delete: ");
+        if (input == null) return;
+
+        int id;
+        try {
+            id = Integer.parseInt(input);
+        } catch (NumberFormatException e) {
+            out.println("Invalid ID.");
+            return;
+        }
+
+        String item = switch (type) {
+            case "Briefs" -> "Brief #" + id;
+            case "Agents" -> "Agent #" + id;
+            default -> "Facility #" + id;
+        };
+        boolean deleted = switch (type) {
+            case "Briefs" -> database.deleteBrief(id);
+            case "Agents" -> database.deleteAgent(id);
+            default -> database.deleteFacility(id);
+        };
+
+        if (deleted) {
+            audit.record(user.getUsername(), AuditLog.DELETE, item);
+            out.println(item + " deleted.");
+        } else {
+            out.println("Entry not found.");
+        }
+    }
+
+    // HOMEWORK 5: ACCESS LEVELS (promote / demote, admins only, not yourself)
+
+    private void manageAccess() {
+        out.println("\n=== USER ACCESS ===");
+        for (UserAccount u : accounts.getUsers()) {
+            out.println(u.getUsername() + " - " + (u.isAdmin() ? "admin" : "standard"));
+        }
+
+        String username = prompt("Username to change: ");
+        if (username == null) return;
+        String level = prompt("1. Make admin  2. Make standard user: ");
+        if (level == null) return;
+
+        if (!level.equals("1") && !level.equals("2")) {
+            out.println("Invalid choice.");
+            return;
+        }
+        boolean makeAdmin = level.equals("1");
+
+        try {
+            accounts.setAdmin(user, username, makeAdmin);
+            audit.record(user.getUsername(), AuditLog.UPDATE,
+                    "User access: " + username + " -> " + (makeAdmin ? "admin" : "standard"));
+            out.println(username + " is now " + (makeAdmin ? "an admin." : "a standard user."));
+        } catch (IllegalArgumentException | IllegalStateException e) {
+            out.println("Error: " + e.getMessage());
+        }
     }
 
     private void viewAuditLog() {
@@ -533,6 +609,7 @@ public class Homework5Menu {
 
         try {
             accounts.addUser(user, username);
+            auditCreate("User account: " + username);
             out.println("User created successfully.");
             out.println("They can set a password at first login.");
         } catch (IllegalArgumentException |

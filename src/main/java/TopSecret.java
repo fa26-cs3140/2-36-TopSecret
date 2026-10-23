@@ -1,4 +1,5 @@
 import java.io.UncheckedIOException;
+import java.nio.file.Path;
 import java.util.Scanner;
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -45,6 +46,7 @@ public class TopSecret {
 
                 ModelDatabase database = new ModelDatabase(connection);
                 database.createTables();
+                database.importSampleData(Path.of("database"));
 
                 Homework5Menu homework5Menu = new Homework5Menu(
                         database,

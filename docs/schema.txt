@@ -27,3 +27,73 @@ Planned Tests:
 4. Test that getAllMissions retrieves records ordered by ID.
 5. Test that searchBriefs performs case-insensitive brief keyword searches.
 6. Test that importing the production TSV loads all 100 missions and persists across restarts.
+
+Homework 5 Tables (Team Member C, created by ModelDatabase.createTables())
+==========================================================================
+All tables live in database/missions.db. Foreign keys are switched on
+(PRAGMA foreign_keys = ON) so the database never holds orphaned data.
+
+CREATE TABLE IF NOT EXISTS facilities (
+    id INTEGER PRIMARY KEY,
+    name TEXT NOT NULL,
+    abbreviation TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS agents (
+    id INTEGER PRIMARY KEY,
+    name TEXT NOT NULL,
+    date_of_birth TEXT,
+    date_of_death TEXT,
+    notes TEXT,
+    facility_id INTEGER NOT NULL REFERENCES facilities(id) ON DELETE RESTRICT
+);
+
+CREATE TABLE IF NOT EXISTS briefs (
+    id INTEGER PRIMARY KEY,
+    title TEXT NOT NULL,
+    date TEXT NOT NULL,
+    text TEXT NOT NULL
+);
+
+-- A mission is conducted by exactly one facility
+CREATE TABLE IF NOT EXISTS mission_facilities (
+    mission_id INTEGER PRIMARY KEY REFERENCES missions(id) ON DELETE CASCADE,
+    facility_id INTEGER NOT NULL REFERENCES facilities(id) ON DELETE RESTRICT
+);
+
+-- A mission has one or more agents
+CREATE TABLE IF NOT EXISTS mission_agents (
+    mission_id INTEGER NOT NULL REFERENCES missions(id) ON DELETE CASCADE,
+    agent_id INTEGER NOT NULL REFERENCES agents(id) ON DELETE RESTRICT,
+    PRIMARY KEY (mission_id, agent_id)
+);
+
+Relationships
+- Facility 1 --- many Agents        (every agent has exactly one facility)
+- Facility 1 --- many Missions      (mission_facilities, one facility per mission)
+- Mission  many --- many Agents     (mission_agents, at least one agent per mission)
+
+Integrity when deleting
+- A facility cannot be deleted while agents or missions still belong to it (RESTRICT).
+- An agent cannot be deleted while staffed on a mission (RESTRICT).
+- Deleting a mission removes its facility and agent links (CASCADE).
+- The program shows a clear error instead of deleting, e.g.
+  "Cannot delete this facility: agents or missions still belong to it".
+
+Audit log table (Team Member D, created by SqliteAuditLog)
+CREATE TABLE IF NOT EXISTS audit_log (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    timestamp TEXT NOT NULL,
+    username TEXT NOT NULL,
+    action TEXT NOT NULL,   -- READ, CREATE, UPDATE or DELETE
+    item TEXT NOT NULL      -- e.g. "Brief #3", "Agent #2", "User account: bob"
+);
+
+Sample data (ModelDatabase.importSampleData, run at startup)
+- database/facilities.tsv   name <tab> abbreviation
+- database/agents.tsv       name <tab> date of birth
+- database/mission_briefs.tsv  Title <tab> Date <tab> Text (header row skipped)
+- Each table is only filled when empty, so restarting does not duplicate data.
+- agents.tsv has no facility column, so agents are assigned to facilities in
+  order (agent 1 -> facility 1, ..., agent 7 -> facility 1 again).
+- Missing files are skipped, so the program still runs without them.

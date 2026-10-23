@@ -144,4 +144,16 @@ class MissionMenuTest {
     void optionFiveIsInvalidWithoutAccounts() {
         assertTrue(runWith("5\n4\n").contains("Invalid choice"));
     }
+
+    @Test
+    void standardUserDoesNotSeeOrUseAddUser() {
+        UserAccount bob = new UserAccount("bob", "BobPass", false);
+        when(users.loadAll()).thenReturn(new ArrayList<>(List.of(agent, bob)));
+        ByteArrayOutputStream output = new ByteArrayOutputStream();
+        new MissionMenu(fakeRepo, fakeSearch, new Scanner("5\n4\n"), new PrintStream(output),
+                audit, new AccountManager(users), bob).run();
+        assertFalse(output.toString().contains("5. Add user"));
+        assertTrue(output.toString().contains("Invalid choice"));
+        verify(users, never()).saveAll(anyList());
+    }
 }

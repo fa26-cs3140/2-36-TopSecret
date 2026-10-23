@@ -1,3 +1,7 @@
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.sql.*;
 import java.util.*;
 
@@ -158,5 +162,103 @@ public class ModelDatabase {
                                   String abbreviation) throws SQLException {
         return execute("UPDATE facilities SET name=?, abbreviation=? WHERE id=?",
                 name, abbreviation, id) > 0;
+    }
+
+    // ---------- Deleting (integrity is kept by the foreign keys) ----------
+
+    // Deletes a brief. Returns false if there was no brief with this id.
+    public boolean deleteBrief(int id) throws SQLException {
+        return execute("DELETE FROM briefs WHERE id=?", id) > 0;
+    }
+
+    // Refused while the agent is staffed on a mission, so no mission is left
+    // pointing at an agent that no longer exists.
+    public boolean deleteAgent(int id) throws SQLException {
+        return deleteOrExplain("DELETE FROM agents WHERE id=?", id,
+                "Cannot delete this agent: they are still assigned to a mission");
+    }
+
+    // Refused while agents or missions still belong to the facility,
+    // so no agent or mission is left without a facility.
+    public boolean deleteFacility(int id) throws SQLException {
+        return deleteOrExplain("DELETE FROM facilities WHERE id=?", id,
+                "Cannot delete this facility: agents or missions still belong to it");
+    }
+
+    private boolean deleteOrExplain(String sql, int id, String message) throws SQLException {
+        try {
+            return execute(sql, id) > 0;
+        } catch (SQLException e) {
+            if (String.valueOf(e.getMessage()).toUpperCase().contains("FOREIGN KEY")) {
+                throw new IllegalStateException(message);
+            }
+            throw e;
+        }
+    }
+
+    // ---------- Sample data ----------
+
+    // Loads facilities.tsv, agents.tsv and mission_briefs.tsv from the folder.
+    // Each table is only filled when it is empty, so this is safe to run every time.
+    // Missing files are skipped so the program still runs without them.
+    // agents.tsv has no facility column, so agents are spread across the
+    // facilities in order (agent 1 -> facility 1, agent 2 -> facility 2, ...).
+    public int importSampleData(Path folder) throws SQLException {
+        int added = 0;
+
+        if (getFacilities().isEmpty()) {
+            for (String[] row : readTsv(folder.resolve("facilities.tsv"), 2)) {
+                addFacility(row[0], row[1]);
+                added++;
+            }
+        }
+
+        List<Facility> facilities = getFacilities();
+        if (getAgents().isEmpty() && !facilities.isEmpty()) {
+            int i = 0;
+            for (String[] row : readTsv(folder.resolve("agents.tsv"), 2)) {
+                int facilityId = facilities.get(i % facilities.size()).getId();
+                addAgent(row[0], row[1], null, null, facilityId);
+                added++;
+                i++;
+            }
+        }
+
+        if (getBriefs().isEmpty()) {
+            for (String[] row : readTsv(folder.resolve("mission_briefs.tsv"), 3)) {
+                if (!row[0].equals("Title")) {
+                    addBrief(row[0], row[1], row[2]);
+                    added++;
+                }
+            }
+        }
+        return added;
+    }
+
+    // Rows of a tab-separated file with exactly `columns` non-blank fields
+    static List<String[]> readTsv(Path file, int columns) {
+        List<String[]> rows = new ArrayList<>();
+        if (!Files.exists(file)) {
+            return rows;
+        }
+        try {
+            for (String line : Files.readAllLines(file, StandardCharsets.UTF_8)) {
+                String[] parts = line.split("\t", -1);
+                if (parts.length != columns) {
+                    continue;
+                }
+                boolean complete = true;
+                for (int i = 0; i < columns; i++) {
+                    parts[i] = parts[i].trim();
+                    complete &= !parts[i].isEmpty();
+                }
+                if (complete) {
+                    rows.add(parts);
+                }
+            }
+        } catch (IOException e) {
+            throw new IllegalStateException("Cannot read sample data: " + file, e);
+        }
+        return rows;
     }
 }
