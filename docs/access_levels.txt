@@ -1,22 +1,34 @@
-Access Levels Implementation & Schema Documentation
+USER ACCESS LEVELS (Team Member A)
 
-Team Member A is responsible for user access levels: storing whether each user is an
-admin or a standard user, enforcing the promote/demote rules, and providing the admin
-menu for managing access.
+Access levels
+  - There are two levels: ADMIN and STANDARD.
+  - Levels are saved in the database (database/missions.db), table user_access:
+      username  TEXT PRIMARY KEY
+      level     TEXT NOT NULL   (ADMIN or STANDARD)
+  - The first user registered in the system is automatically an ADMIN.
+    Every user after that is STANDARD.
+  - STANDARD users can read items.
+    ADMIN users can also create entries, create users, review the audit log,
+    and manage access.
+  - An admin can promote any standard user to admin, and demote any admin
+    to standard, except themselves. This means there is always at least
+    one admin.
+  - A user does not see menu options they cannot use. The UI calls
+    access.isAdmin(username) to decide which options to show.
 
-SQL Schema Definition:
+How it is used
+  - The account code calls Access.registerUser(username) when an account is
+    created, and again at login (safe to repeat).
+  - Admins get a "Manage access" menu option that opens AccessMenu, where they
+    can list users, promote a user, or demote an admin.
 
-CREATE TABLE IF NOT EXISTS user_access (
-    username TEXT PRIMARY KEY,
-    level TEXT NOT NULL
-);
+Classes
+  Access      stores and checks levels: registerUser, getLevel, isAdmin,
+              promote, demote, getAllUsers
+  AccessMenu  admin-only menu to list, promote and demote users
 
-Schema Details:
-- username (TEXT): Primary key, the user's account name.
-- level (TEXT): Either ADMIN or STANDARD.
-- Rows are listed in the order users were registered.
-- The table is in the shared database file (database/missions.db) and is created
-  automatically if it does not exist.
-
-Access Rules:
-- The first
+Tests
+  Unit (Mockito mocks Access):
+    AccessTest (uses a temporary database), AccessMenuTest
+  Integration:
+    AccessMenuAccessTest
