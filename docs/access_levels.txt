@@ -1,0 +1,22 @@
+Access Levels Implementation & Schema Documentation
+
+Team Member A is responsible for user access levels: storing whether each user is an
+admin or a standard user, enforcing the promote/demote rules, and providing the admin
+menu for managing access.
+
+SQL Schema Definition:
+
+CREATE TABLE IF NOT EXISTS user_access (
+    username TEXT PRIMARY KEY,
+    level TEXT NOT NULL
+);
+
+Schema Details:
+- username (TEXT): Primary key, the user's account name.
+- level (TEXT): Either ADMIN or STANDARD.
+- Rows are listed in the order users were registered.
+- The table is in the shared database file (database/missions.db) and is created
+  automatically if it does not exist.
+
+Access Rules:
+- The first
