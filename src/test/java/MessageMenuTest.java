@@ -1,6 +1,5 @@
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
@@ -14,7 +13,6 @@ import static org.mockito.Mockito.*;
 
 // Unit tests: the message store and audit log are Mockito mocks.
 // Agents come from an in-memory database.
-@Disabled("MessageMenu is a stub until week 2")
 class MessageMenuTest {
 
     private final MessageStore store = mock(MessageStore.class);
