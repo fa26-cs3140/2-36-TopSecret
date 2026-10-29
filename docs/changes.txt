@@ -1,3 +1,14 @@
+CHANGE NOTES - Homework 6
+
+Messages for agents (Team Member D)
+  - New "3. Messages" option in the terminal main menu (send a message to an
+    agent, read my messages). At login, users with messages see a notice.
+  - A message is read by the user whose username matches the agent's name,
+    ignoring case. Nobody else can see it. Admin access is not needed.
+  - New messages table linked to agents (ON DELETE CASCADE). See docs/messages.txt.
+  - New classes: Message, MessageStore, SqliteMessageStore, MessageMenu.
+  - Sending and reading messages are recorded in the audit log.
+
 CHANGE NOTES - Homework 5
 
 Homework 4 -> Homework 5

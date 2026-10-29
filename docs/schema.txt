@@ -97,3 +97,16 @@ Sample data (ModelDatabase.importSampleData, run at startup)
 - agents.tsv has no facility column, so agents are assigned to facilities in
   order (agent 1 -> facility 1, ..., agent 7 -> facility 1 again).
 - Missing files are skipped, so the program still runs without them.
+
+
+Messages table (Team Member D, Homework 6, created by SqliteMessageStore)
+CREATE TABLE IF NOT EXISTS messages (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    agent_id INTEGER NOT NULL REFERENCES agents(id) ON DELETE CASCADE,
+    sender TEXT NOT NULL,
+    text TEXT NOT NULL,
+    sent_at TEXT NOT NULL
+);
+- Agent 1 --- many Messages. Deleting an agent deletes their messages.
+- Read by the user whose username matches the agent name, ignoring case.
+- See docs/messages.txt for details.
