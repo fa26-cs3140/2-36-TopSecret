@@ -1,4 +1,3 @@
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import java.io.ByteArrayOutputStream;
@@ -12,7 +11,6 @@ import static org.junit.jupiter.api.Assertions.*;
 
 // Integration test of the full messages workflow from the assignment:
 // real sample data, real user file, real login, real message store and audit log.
-@Disabled("MessageMenu is a stub until week 2")
 class MessageMenuSqliteMessageStoreTest {
 
     @TempDir
