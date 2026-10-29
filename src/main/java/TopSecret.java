@@ -58,10 +58,17 @@ public class TopSecret {
                         user.isAdmin()
                 );
 
+                // Messages for agents (Member D). Uses the same database file.
+                MessageMenu messageMenu = new MessageMenu(
+                        new SqliteMessageStore(SqliteMissionStore.DEFAULT_DB_FILE),
+                        database, audit, user, scanner, System.out);
+                messageMenu.printInboxNotice();
+
                 while (true) {
                     System.out.println("\n=== TOP SECRET SYSTEM ===");
                     System.out.println("1. Existing Mission Menu");
                     System.out.println("2. Homework 5 Records Menu");
+                    System.out.println("3. Messages");
                     System.out.println("0. Logout");
                     System.out.print("Choose an option: ");
 
@@ -77,6 +84,8 @@ public class TopSecret {
                                 audit, accounts, user).run();
 
                         case "2" -> homework5Menu.run();
+
+                        case "3" -> messageMenu.run();
 
                         case "0" -> {
                             System.out.println("Goodbye!");
