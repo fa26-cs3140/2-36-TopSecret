@@ -23,4 +23,9 @@ class TopSecretTest {
             System.setIn(originalIn);
         }
     }
+
+    @Test
+    void canBeConstructed() {
+        assertNotNull(new TopSecret());
+    }
 }

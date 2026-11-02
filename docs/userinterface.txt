@@ -51,3 +51,37 @@ Tests:
     - Read shows a brief from the database
     - Search finds matches in the database, ignoring case
     - Search with no matches says so
+
+
+HOMEWORK 5 USER INTERFACE (Team Member B: Homework5Menu)
+
+Top menu after login (TopSecret):
+  1. Existing Mission Menu    the Homework 4 menu above
+  2. Homework 5 Records Menu  the menu below
+  0. Logout
+
+Records menu:
+  1. Mission Briefs   2. Agents   3. Facilities
+  4. View Audit Log            (admin only)
+  5. Add User                  (admin only, username only)
+  6. Manage User Access        (admin only, promote/demote others, not yourself)
+  0. Back / Exit
+
+Inside Mission Briefs, Agents, or Facilities:
+  1. List entries     id and title/name of every entry
+  2. Read an entry    all fields of one entry by id
+  3. Add an entry     (admin) prompts for each field; the new entry is listed right away
+  4. Update an entry  (admin) prompts for new values
+  5. Delete an entry  (admin) refused if it would leave orphaned data
+  0. Back
+
+Fields asked for:
+  Briefs:     title, date, text
+  Agents:     name, date of birth, date of death (blank if alive), notes, facility id
+  Facilities: name, abbreviation
+
+Standard users only see list and read. Every read, add, update, and delete is
+recorded in the audit log with the user and time.
+
+Tests: Homework5MenuTest (unit, Mockito mocks for AuditLog and UserStore),
+       Homework5MenuSqliteAuditLogTest (integration with the real database and audit log).

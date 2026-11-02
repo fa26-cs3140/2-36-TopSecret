@@ -168,4 +168,32 @@ class AccountManagerTest {
         assertFalse(accounts.changePassword("agent", "Secret1", "Better2", "Better3"));
         verify(store, never()).saveAll(anyList());
     }
+
+    @Test
+    void onlyAdminsCanAddUsers() {
+        storeHas(new UserAccount("bob", "BobPass", false));
+        assertThrows(IllegalStateException.class,
+                () -> accounts.addUser(new UserAccount("bob", "BobPass", false), "carol"));
+        verify(store, never()).saveAll(anyList());
+    }
+
+    @Test
+    void adminPromotesAndDemotesOtherUsers() {
+        UserAccount admin = new UserAccount("agent", "Secret1", true);
+        storeHas(admin, new UserAccount("bob", "BobPass", false));
+        accounts.setAdmin(admin, "bob", true);
+        assertTrue(savedUsers().get(1).isAdmin());
+    }
+
+    @Test
+    void accessLevelRules() {
+        UserAccount admin = new UserAccount("agent", "Secret1", true);
+        UserAccount bob = new UserAccount("bob", "BobPass", false);
+        storeHas(admin, bob);
+        assertThrows(IllegalStateException.class, () -> accounts.setAdmin(bob, "agent", false));
+        assertThrows(IllegalStateException.class, () -> accounts.setAdmin(null, "bob", true));
+        assertThrows(IllegalArgumentException.class, () -> accounts.setAdmin(admin, "agent", false));
+        assertThrows(IllegalArgumentException.class, () -> accounts.setAdmin(admin, "nobody", true));
+        verify(store, never()).saveAll(anyList());
+    }
 }

@@ -48,4 +48,17 @@ public class MissionSearchTest {
         List<Mission> matches = searchService.searchBriefs("nonexistent query");
         assertTrue(matches.isEmpty());
     }
+
+    @Test
+    void formatSearchResultsListsMatches() {
+        String text = searchService.formatSearchResults("Berlin", searchService.searchBriefs("Berlin"));
+        assertTrue(text.contains("Matches found (1)"));
+        assertTrue(text.contains("[1] Operation Alpha"));
+    }
+
+    @Test
+    void formatSearchResultsSaysWhenNothingMatches() {
+        assertEquals("No matches found for: \"zebra\"", searchService.formatSearchResults("zebra", List.of()));
+        assertEquals("No matches found for: \"zebra\"", searchService.formatSearchResults("zebra", null));
+    }
 }

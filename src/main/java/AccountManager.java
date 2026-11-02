@@ -68,6 +68,9 @@ public class AccountManager {
         if (creator == null) {
             throw new IllegalStateException("You must be logged in to add a user");
         }
+        if (!creator.isAdmin()) {
+            throw new IllegalStateException("Only admins can add users");
+        }
         if (!isValidUsername(newUsername)) {
             throw new IllegalArgumentException(USERNAME_RULE);
         }
@@ -114,6 +117,26 @@ public class AccountManager {
             return false;
         }
         return savePassword(username, newPassword);
+    }
+
+    // Access levels (Member A): an admin promotes a standard user to admin
+    // or demotes an admin to standard. Admins cannot change their own level.
+    public void setAdmin(UserAccount actor, String username, boolean makeAdmin) {
+        if (actor == null || !actor.isAdmin()) {
+            throw new IllegalStateException("Only admins can change access levels");
+        }
+        if (actor.getUsername().equals(username)) {
+            throw new IllegalArgumentException("You cannot change your own access level");
+        }
+        List<UserAccount> users = new ArrayList<>(store.loadAll());
+        for (UserAccount u : users) {
+            if (u.getUsername().equals(username)) {
+                u.setAdmin(makeAdmin);
+                store.saveAll(users);
+                return;
+            }
+        }
+        throw new IllegalArgumentException("No user named " + username);
     }
 
     private boolean savePassword(String username, String password) {

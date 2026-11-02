@@ -1,0 +1,47 @@
+MESSAGES FOR AGENTS (Team Member D, Homework 6)
+
+What it does
+  Any logged-in user can leave a message for an agent from the terminal.
+  To read it, someone creates a user account whose username matches the
+  agent's name (case does not matter). When that user logs in, the program
+  says how many messages they have, and they can read them. No other user
+  can see them. Admin access is not needed to send or read messages.
+  Messages are terminal only; they are not shown in the web view.
+
+How to use it (terminal)
+  After login, the main menu has "3. Messages":
+    1. Send a message to an agent   pick the agent by number or name, then type the message
+    2. Read my messages (N)         shows messages for the agent matching your username
+    0. Back
+  Example: smayan sends "Package is at the drop point." to Ghost. An admin
+  adds user "Ghost" (or "ghost"). Ghost logs in, creates a password, sees
+  "You have 1 message", and reads it under Messages.
+
+Database table (created by SqliteMessageStore, in database/missions.db)
+  CREATE TABLE IF NOT EXISTS messages (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      agent_id INTEGER NOT NULL REFERENCES agents(id) ON DELETE CASCADE,
+      sender TEXT NOT NULL,      -- username of the user who wrote it
+      text TEXT NOT NULL,
+      sent_at TEXT NOT NULL      -- e.g. 2026-10-29T14:10:00
+  );
+  - A message always points at a real agent, so it can never be orphaned.
+  - Deleting an agent deletes their messages (CASCADE).
+  - Foreign keys are switched on for every connection.
+  - Messages are matched to users by LOWER(agents.name) = LOWER(username).
+
+Audit log
+  Sending:  CREATE  "Message #<id> to <agent>"
+  Reading:  READ    "Message #<id>"   (one entry per message shown)
+
+Classes
+  Message                  one message (id, agent name, sender, text, time sent)
+  MessageStore (interface) send(sender, agentName, text), getMessagesFor(username)
+  SqliteMessageStore       MessageStore saved in the SQLite database
+  MessageMenu              terminal menu for sending and reading messages
+
+Tests
+  Unit:        MessageTest, SqliteMessageStoreTest,
+               MessageMenuTest (Mockito mocks MessageStore and AuditLog)
+  Integration: MessageMenuSqliteMessageStoreTest (full workflow: send to Ghost,
+               create account Ghost, log in, read; other users see nothing)

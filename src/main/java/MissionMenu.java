@@ -47,7 +47,7 @@ public class MissionMenu {
                     return;
                 }
                 case "5" -> {
-                    if (accounts != null) {
+                    if (canAddUsers()) {
                         addUser();
                     } else {
                         out.println("Invalid choice. Enter 1, 2, 3, or 4.");
@@ -64,7 +64,7 @@ public class MissionMenu {
         out.println("2. Read a mission");
         out.println("3. Search missions");
         out.println("4. Exit");
-        if (accounts != null) {
+        if (canAddUsers()) {
             out.println("5. Add user");
         }
         out.print("Choose an option: ");
@@ -118,6 +118,11 @@ public class MissionMenu {
         } catch (IllegalArgumentException | IllegalStateException e) {
             out.println("Error: " + e.getMessage());
         }
+    }
+
+    // Only logged-in admins see and can use "Add user"
+    private boolean canAddUsers() {
+        return accounts != null && user != null && user.isAdmin();
     }
 
     // Records an event in the audit log, if this menu has one

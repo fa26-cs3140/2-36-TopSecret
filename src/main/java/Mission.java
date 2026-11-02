@@ -34,8 +34,9 @@ public class Mission {
                     "Mission must have a facility");
         }
 
+        // stream check, because contains(null) crashes on lists made with List.of(...)
         if (agentIds == null || agentIds.isEmpty()
-                || agentIds.contains(null)) {
+                || agentIds.stream().anyMatch(Objects::isNull)) {
             throw new IllegalArgumentException(
                     "Mission must have at least one agent");
         }
