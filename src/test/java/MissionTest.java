@@ -41,4 +41,51 @@ class MissionTest {
         assertNotEquals(a, new Mission(2, "Op", "b", "d"));
         assertNotEquals(a, "not a mission");
     }
+
+//    @Test
+//    void homework6ConstructorKeepsBriefsAndAllowsNoAgents() {
+//        Mission empty = new Mission(1, "Op", "b", "d", 0, List.of(), List.of());
+//        assertEquals(0, empty.getFacilityId());
+//        assertTrue(empty.getAgentIds().isEmpty());
+//        assertTrue(empty.getBriefIds().isEmpty());
+//
+//        Mission m = new Mission(2, "Op", "b", "d", 3, List.of(4, 5, 4), List.of(8, 9, 8));
+//        assertEquals(3, m.getFacilityId());
+//        assertEquals(List.of(4, 5), m.getAgentIds());
+//        assertEquals(List.of(8, 9), m.getBriefIds());
+//    }
+//
+//    @Test
+//    void homework6ConstructorRejectsBadInput() {
+//        assertThrows(IllegalArgumentException.class, () -> new Mission(1, "Op", "b", "d", -1, List.of(), List.of()));
+//        assertThrows(IllegalArgumentException.class, () -> new Mission(1, "Op", "b", "d", 1, null, List.of()));
+//        assertThrows(IllegalArgumentException.class,
+//                () -> new Mission(1, "Op", "b", "d", 1, java.util.Arrays.asList(1, null), List.of()));
+//        assertThrows(IllegalArgumentException.class, () -> new Mission(1, "Op", "b", "d", 1, List.of(), null));
+//        assertThrows(IllegalArgumentException.class,
+//                () -> new Mission(1, "Op", "b", "d", 1, List.of(), java.util.Arrays.asList(2, null)));
+//    }
+//
+//    @Test
+//    void gettersReturnCopiesOfAgentAndBriefIds() {
+//        Mission m = new Mission(1, "Op", "b", "d", 1, List.of(3), List.of(4));
+//        m.getAgentIds().add(99);
+//        m.getBriefIds().add(99);
+//        assertEquals(List.of(3), m.getAgentIds());
+//        assertEquals(List.of(4), m.getBriefIds());
+//    }
+//
+//    @Test
+//    void hasAgentChecksAssignment() {
+//        Mission m = new Mission(1, "Op", "b", "d", 1, List.of(3), List.of());
+//        assertTrue(m.hasAgent(3));
+//        assertFalse(m.hasAgent(4));
+//    }
+//
+//    @Test
+//    void toStringIsOnePlainTextLine() {
+//        Mission m = new Mission(4, "Op", "b", "2026-01-01", 2, List.of(1, 2), List.of(8));
+//        assertEquals("Mission #4: Op (2026-01-01), facility 2, 2 agent(s), 1 brief(s)", m.toString());
+//        assertTrue(new Mission(5, "Old", "b", "d").toString().contains("no facility"));
+//    }
 }

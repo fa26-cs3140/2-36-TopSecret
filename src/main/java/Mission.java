@@ -49,6 +49,12 @@ public class Mission {
         this.agentIds = new ArrayList<>(agentIds);
     }
 
+    public <E> Mission(int i, String op, String b, String d, int i1, List<E> of, List<E> of1) {
+        this.id = i;
+        this.title = op;
+        this.brief = b;
+    }
+
     // Getter methods
     public int getId() {
         return id;
@@ -97,5 +103,13 @@ public class Mission {
     @Override
     public int hashCode() {
         return Objects.hash(id, title, brief, date);
+    }
+
+    public CharSequence getBriefIds() {
+        return  brief;
+    }
+
+    public boolean hasAgent(int i) {
+        return agentIds.contains(i);
     }
 }
