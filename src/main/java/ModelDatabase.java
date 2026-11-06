@@ -40,6 +40,16 @@ public class ModelDatabase {
                     "mission_id INTEGER NOT NULL REFERENCES missions(id) ON DELETE CASCADE, " +
                     "agent_id INTEGER NOT NULL REFERENCES agents(id) ON DELETE RESTRICT, " +
                     "PRIMARY KEY(mission_id, agent_id))");
+
+            // A mission has zero or more briefs. UNIQUE(brief_id)
+            // means a brief belongs to at most one mission. mission_id has no
+            // foreign key on purpose: deleting a brief cascades into this table, and
+            // that would fail wherever the missions table has not been created.
+            // attachBrief checks that the mission exists before linking.
+            s.executeUpdate("CREATE TABLE IF NOT EXISTS mission_briefs (" +
+                    "mission_id INTEGER NOT NULL, " +
+                    "brief_id INTEGER NOT NULL UNIQUE REFERENCES briefs(id) ON DELETE CASCADE, " +
+                    "PRIMARY KEY(mission_id, brief_id))");
         }
     }
 
@@ -143,6 +153,191 @@ public class ModelDatabase {
         } finally {
             connection.setAutoCommit(true);
         }
+    }
+
+    // ---------- Missions, joint operations and briefs ----------
+
+    // Creates a mission run by one facility. It starts with no agents and no briefs.
+    // Returns the new mission id.
+    public int addMission(String title, String brief, String date,
+                          int facilityId) throws SQLException {
+        if (title == null || title.isBlank())
+            throw new IllegalArgumentException("Mission title is required");
+        requireExists("facilities", facilityId, "facility");
+
+        if (!connection.getAutoCommit())
+            throw new SQLException("Connection must use auto-commit");
+
+        connection.setAutoCommit(false);
+        try {
+            execute("INSERT INTO missions(title,brief,date) VALUES (?,?,?)",
+                    title.trim(), brief == null ? "" : brief, date);
+            int missionId = getLastInsertId();
+            execute("INSERT INTO mission_facilities(mission_id,facility_id) VALUES (?,?)",
+                    missionId, facilityId);
+            connection.commit();
+            return missionId;
+        } catch (SQLException | RuntimeException e) {
+            connection.rollback();
+            throw e;
+        } finally {
+            connection.setAutoCommit(true);
+        }
+    }
+
+    // Assigns one agent to a mission. The agent may belong to any facility
+    // (joint operation). Returns false if the agent was already assigned.
+    public boolean assignAgent(int missionId, int agentId) throws SQLException {
+        requireExists("missions", missionId, "mission");
+        requireExists("agents", agentId, "agent");
+        if (exists("SELECT 1 FROM mission_agents WHERE mission_id=? AND agent_id=?",
+                missionId, agentId))
+            return false;
+        execute("INSERT INTO mission_agents(mission_id,agent_id) VALUES (?,?)",
+                missionId, agentId);
+        return true;
+    }
+
+    // Returns false if the agent was not assigned to the mission.
+    public boolean unassignAgent(int missionId, int agentId) throws SQLException {
+        return execute("DELETE FROM mission_agents WHERE mission_id=? AND agent_id=?",
+                missionId, agentId) > 0;
+    }
+
+    // Attaches a brief to a mission. A brief belongs to at most one mission.
+    // Returns false if it was already attached to this mission, and throws
+    // IllegalArgumentException if it belongs to a different one.
+    public boolean attachBrief(int missionId, int briefId) throws SQLException {
+        requireExists("missions", missionId, "mission");
+        requireExists("briefs", briefId, "brief");
+
+        try (PreparedStatement p = connection.prepareStatement(
+                "SELECT mission_id FROM mission_briefs WHERE brief_id=?")) {
+            p.setInt(1, briefId);
+            try (ResultSet r = p.executeQuery()) {
+                if (r.next()) {
+                    int owner = r.getInt(1);
+                    if (owner == missionId)
+                        return false;
+                    throw new IllegalArgumentException(
+                            "Brief #" + briefId + " already belongs to mission #" + owner);
+                }
+            }
+        }
+        execute("INSERT INTO mission_briefs(mission_id,brief_id) VALUES (?,?)",
+                missionId, briefId);
+        return true;
+    }
+
+    // Returns false if the brief was not attached to the mission.
+    public boolean detachBrief(int missionId, int briefId) throws SQLException {
+        return execute("DELETE FROM mission_briefs WHERE mission_id=? AND brief_id=?",
+                missionId, briefId) > 0;
+    }
+
+    // All missions ordered by id, with their facility, agents and briefs.
+    public List<Mission> getMissions() throws SQLException {
+        Map<Integer, List<Integer>> agents = loadLinks(
+                "SELECT mission_id, agent_id FROM mission_agents ORDER BY mission_id, agent_id");
+        Map<Integer, List<Integer>> briefs = loadLinks(
+                "SELECT mission_id, brief_id FROM mission_briefs ORDER BY mission_id, brief_id");
+
+        List<Mission> result = new ArrayList<>();
+        try (Statement s = connection.createStatement();
+             ResultSet r = s.executeQuery(
+                     "SELECT m.id, m.title, m.brief, m.date, " +
+                             "COALESCE(mf.facility_id, 0) AS facility_id " +
+                             "FROM missions m " +
+                             "LEFT JOIN mission_facilities mf ON mf.mission_id = m.id " +
+                             "ORDER BY m.id")) {
+            while (r.next()) {
+                int id = r.getInt("id");
+                result.add(new Mission(id, r.getString("title"),
+                        r.getString("brief"), r.getString("date"),
+                        r.getInt("facility_id"),
+                        agents.getOrDefault(id, List.of()),
+                        briefs.getOrDefault(id, List.of())));
+            }
+        }
+        return result;
+    }
+
+    // The mission with this id, or null if there is none.
+    public Mission getMission(int missionId) throws SQLException {
+        for (Mission m : getMissions())
+            if (m.getId() == missionId)
+                return m;
+        return null;
+    }
+
+    // Every mission this agent is assigned to, ordered by mission id.
+    public List<Mission> getMissionsForAgent(int agentId) throws SQLException {
+        List<Mission> result = new ArrayList<>();
+        for (Mission m : getMissions())
+            if (m.hasAgent(agentId))
+                result.add(m);
+        return result;
+    }
+
+    public List<Agent> getAgentsForMission(int missionId) throws SQLException {
+        List<Agent> result = new ArrayList<>();
+        try (PreparedStatement p = connection.prepareStatement(
+                "SELECT a.* FROM agents a " +
+                        "JOIN mission_agents ma ON ma.agent_id = a.id " +
+                        "WHERE ma.mission_id=? ORDER BY a.id")) {
+            p.setInt(1, missionId);
+            try (ResultSet r = p.executeQuery()) {
+                while (r.next())
+                    result.add(new Agent(r.getInt("id"), r.getString("name"),
+                            r.getString("date_of_birth"), r.getString("date_of_death"),
+                            r.getString("notes"), r.getInt("facility_id")));
+            }
+        }
+        return result;
+    }
+
+    public List<Brief> getBriefsForMission(int missionId) throws SQLException {
+        List<Brief> result = new ArrayList<>();
+        try (PreparedStatement p = connection.prepareStatement(
+                "SELECT b.id, b.title, b.date, b.text FROM briefs b " +
+                        "JOIN mission_briefs mb ON mb.brief_id = b.id " +
+                        "WHERE mb.mission_id=? ORDER BY b.id")) {
+            p.setInt(1, missionId);
+            try (ResultSet r = p.executeQuery()) {
+                while (r.next())
+                    result.add(new Brief(r.getInt("id"), r.getString("title"),
+                            r.getString("date"), r.getString("text")));
+            }
+        }
+        return result;
+    }
+
+    // Reads (mission_id, other_id) rows into a map. The sql is always a
+    // fixed string from this class, never user input.
+    private Map<Integer, List<Integer>> loadLinks(String sql) throws SQLException {
+        Map<Integer, List<Integer>> links = new HashMap<>();
+        try (Statement s = connection.createStatement();
+             ResultSet r = s.executeQuery(sql)) {
+            while (r.next())
+                links.computeIfAbsent(r.getInt(1), k -> new ArrayList<>()).add(r.getInt(2));
+        }
+        return links;
+    }
+
+    private boolean exists(String sql, Object... values) throws SQLException {
+        try (PreparedStatement p = connection.prepareStatement(sql)) {
+            for (int i = 0; i < values.length; i++)
+                p.setObject(i + 1, values[i]);
+            try (ResultSet r = p.executeQuery()) {
+                return r.next();
+            }
+        }
+    }
+
+    // The table name is always a fixed string from this class, never user input.
+    private void requireExists(String table, int id, String label) throws SQLException {
+        if (!exists("SELECT 1 FROM " + table + " WHERE id=?", id))
+            throw new IllegalArgumentException("No such " + label + ": " + id);
     }
 
     public boolean updateBrief(int id, String title,

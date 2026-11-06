@@ -1,9 +1,12 @@
-
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Objects;
 
 // Mission record retrieved from the SQLite database.
+// A Mission is run by one Facility, has zero or more Briefs, and has
+// any number of Agents (joint operations: agents may come from any Facility).
+// A Mission object is a snapshot. Changes go through ModelDatabase and are reloaded.
 public class Mission {
     private final int id;
     private final String title;
@@ -11,6 +14,7 @@ public class Mission {
     private final String date;
     private final int facilityId;
     private final List<Integer> agentIds;
+    private final List<Integer> briefIds;
 
     // Original Homework 4 constructor
     public Mission(int id, String title,
@@ -21,6 +25,7 @@ public class Mission {
         this.date = date;
         this.facilityId = 0;
         this.agentIds = new ArrayList<>();
+        this.briefIds = new ArrayList<>();
     }
 
     // Homework 5 constructor
@@ -34,9 +39,8 @@ public class Mission {
                     "Mission must have a facility");
         }
 
-        // stream check, because contains(null) crashes on lists made with List.of(...)
         if (agentIds == null || agentIds.isEmpty()
-                || agentIds.stream().anyMatch(Objects::isNull)) {
+                || hasNull(agentIds)) {
             throw new IllegalArgumentException(
                     "Mission must have at least one agent");
         }
@@ -47,12 +51,51 @@ public class Mission {
         this.date = date;
         this.facilityId = facilityId;
         this.agentIds = new ArrayList<>(agentIds);
+        this.briefIds = new ArrayList<>();
     }
 
-    public <E> Mission(int i, String op, String b, String d, int i1, List<E> of, List<E> of1) {
-        this.id = i;
-        this.title = op;
-        this.brief = b;
+    // Constructor used when loading from the database.
+    // A mission may have no agents yet and no briefs. facilityId 0 means
+    // "no facility recorded" (missions loaded without a facility row).
+    public Mission(int id, String title,
+                   String brief, String date,
+                   int facilityId,
+                   List<Integer> agentIds,
+                   List<Integer> briefIds) {
+
+        if (facilityId < 0) {
+            throw new IllegalArgumentException(
+                    "Facility id cannot be negative");
+        }
+
+        if (agentIds == null || hasNull(agentIds)) {
+            throw new IllegalArgumentException(
+                    "Agent ids cannot be null");
+        }
+
+        if (briefIds == null || hasNull(briefIds)) {
+            throw new IllegalArgumentException(
+                    "Brief ids cannot be null");
+        }
+
+        this.id = id;
+        this.title = title;
+        this.brief = brief;
+        this.date = date;
+        this.facilityId = facilityId;
+        // An agent is assigned to a mission at most once
+        this.agentIds = new ArrayList<>(new LinkedHashSet<>(agentIds));
+        this.briefIds = new ArrayList<>(new LinkedHashSet<>(briefIds));
+    }
+
+    // List.of(...).contains(null) throws NullPointerException, so look for null by hand
+    private static boolean hasNull(List<Integer> ids) {
+        for (Integer id : ids) {
+            if (id == null) {
+                return true;
+            }
+        }
+        return false;
     }
 
     // Getter methods
@@ -80,6 +123,14 @@ public class Mission {
         return new ArrayList<>(agentIds);
     }
 
+    public List<Integer> getBriefIds() {
+        return new ArrayList<>(briefIds);
+    }
+
+    public boolean hasAgent(int agentId) {
+        return agentIds.contains(agentId);
+    }
+
     // Equals method from teammate's code
     @Override
     public boolean equals(Object o) {
@@ -105,11 +156,12 @@ public class Mission {
         return Objects.hash(id, title, brief, date);
     }
 
-    public CharSequence getBriefIds() {
-        return  brief;
-    }
-
-    public boolean hasAgent(int i) {
-        return agentIds.contains(i);
+    // One plain-text line. The terminal prints it as is, and the web view can wrap it in tags.
+    @Override
+    public String toString() {
+        return "Mission #" + id + ": " + title + " (" + date + "), "
+                + (facilityId == 0 ? "no facility" : "facility " + facilityId)
+                + ", " + agentIds.size() + " agent(s), "
+                + briefIds.size() + " brief(s)";
     }
 }
