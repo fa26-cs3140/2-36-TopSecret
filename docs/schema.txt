@@ -110,3 +110,37 @@ CREATE TABLE IF NOT EXISTS messages (
 - Agent 1 --- many Messages. Deleting an agent deletes their messages.
 - Read by the user whose username matches the agent name, ignoring case.
 - See docs/messages.txt for details.
+
+
+Homework 6: Missions, joint operations, and mission briefs (Team Member A)
+==========================================================================
+A mission (missions table) is run by exactly one facility (mission_facilities).
+Agents belong to one facility, but any agent can be assigned to many missions,
+including missions run by another facility (joint operations, mission_agents).
+A mission has zero or more briefs (mission_briefs). Assignments are made in the
+terminal under "4. Missions and Assignments" (admins only).
+
+CREATE TABLE IF NOT EXISTS mission_briefs (
+    mission_id INTEGER NOT NULL,
+    brief_id INTEGER NOT NULL UNIQUE REFERENCES briefs(id) ON DELETE CASCADE,
+    PRIMARY KEY (mission_id, brief_id)
+);
+- UNIQUE(brief_id): a brief belongs to at most one mission.
+- Deleting a brief removes its link (CASCADE).
+- mission_id has no foreign key on purpose (the missions table is created by
+  SqliteMissionStore, not ModelDatabase); AssignmentMenu checks that the mission
+  exists before attaching a brief.
+
+Access levels table (Team Member A, created by model.Access)
+CREATE TABLE IF NOT EXISTS user_access (
+    username TEXT PRIMARY KEY,
+    level TEXT NOT NULL      -- ADMIN or STANDARD
+);
+- The first registered user is ADMIN, everyone after is STANDARD.
+
+Where data lives
+- Every table above is in database/missions.db (created on first run).
+- User accounts and passwords are NOT in the database: they are ciphered in
+  users.cip (see docs/accounts_audit.txt). audit_log.username,
+  messages.sender and user_access.username refer to those usernames.
+- The full diagram is docs/UML_ERD.pdf.

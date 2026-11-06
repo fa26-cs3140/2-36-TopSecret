@@ -1,5 +1,43 @@
 CHANGE NOTES - Homework 6
 
+Architecture: Model-View-Controller (team)
+  - Classes are organized into three packages:
+      model       data and storage (Agent, Brief, Facility, Mission, ModelDatabase,
+                  Message, SqliteMessageStore, UserAccount, CipheredUserStore,
+                  AuditLog, SqliteAuditLog, SqliteMissionStore, Access, Cipher, ...)
+      view        what the user sees (HtmlView, WebPages, Homework5Menu,
+                  MissionMenu, MessageMenu, AssignmentMenu, AccessMenu, UserInterface)
+      controller  input and flow (WebController, LoginHandler, AccountManager,
+                  ProgramControl)
+  - TopSecret (the program's entry point) stays outside the packages so
+    "java TopSecret", "./gradlew run", and the jar work unchanged.
+  - Tests are in the same package as the class they test.
+
+Web view (Team Member B, control)
+  - "java -jar build/libs/TopSecret.jar -web" (or ./gradlew run --args="-web")
+    starts an HTTP server at http://localhost:3002/. Without -web the program
+    runs in the terminal as before.
+  - The web view will not start until a user account exists.
+  - A login form checks the username and password. Wrong credentials show an
+    error. Correct ones get a session cookie (HttpOnly, no expiry date, so it
+    ends when the browser closes). Every page except the login page needs it.
+  - Pages: Home, Briefs, Agents, Facilities, Missions, Audit Log (admins only),
+    and Logout. The web view is read only.
+  - New classes: controller.WebController, view.WebPages.
+
+HTML view (Team Member C, view)
+  - view.HtmlView wraps the same data shown in the terminal in plain HTML
+    tables and lists (no CSS, no JavaScript), using one page template.
+  - Wireframes: docs/Wireframes.pdf.
+
+Missions and joint operations (Team Member A, model)
+  - A mission is run by one facility, agents from any facility can be assigned
+    to many missions, and a mission has zero or more briefs.
+  - Terminal: "4. Missions and Assignments" (admins) lists missions, creates a
+    mission, assigns or removes agents, and attaches briefs. Changes are audited.
+  - New table: mission_briefs. See docs/schema.txt and docs/UML_ERD.pdf.
+  - New class: view.AssignmentMenu.
+
 Messages for agents (Team Member D)
   - New "3. Messages" option in the terminal main menu (send a message to an
     agent, read my messages). At login, users with messages see a notice.
