@@ -19,7 +19,59 @@ public class TopSecret {
                 loginHandler.changePassword();
                 return;
             }
+            // Start web mode before terminal authentication.
+            if (args.length == 1 && args[0].equals("-web")) {
+                if (!accounts.hasAccounts()) {
+                    System.out.println(
+                            "Create a user account in terminal mode first.");
+                    return;
+                }
 
+                try {
+                    MissionStore webStore = new SqliteMissionStore();
+
+                    AuditLog webAudit = new SqliteAuditLog(
+                            SqliteMissionStore.DEFAULT_DB_FILE);
+
+                    Connection webConnection = DriverManager.getConnection(
+                            "jdbc:sqlite:" + SqliteMissionStore.DEFAULT_DB_FILE);
+
+                    try {
+                        ModelDatabase webDatabase =
+                                new ModelDatabase(webConnection);
+
+                        webDatabase.createTables();
+                        webDatabase.importSampleData(Path.of("database"));
+
+                        WebController web = new WebController(
+                                accounts,
+                                new WebPages(webConnection, webStore, webAudit));
+
+                        web.start();
+
+                        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+                            web.stop();
+
+                            try {
+                                webConnection.close();
+                            } catch (SQLException ignored) {
+                            }
+                        }));
+
+                        System.out.println(
+                                "Web interface: http://localhost:3002/");
+
+                    } catch (SQLException | RuntimeException e) {
+                        webConnection.close();
+                        throw e;
+                    }
+
+                } catch (SQLException e) {
+                    System.out.println("Database error: " + e.getMessage());
+                }
+
+                return;
+            }
             // Reject unknown command-line arguments.
             if (args.length != 0) {
                 System.out.println("Unknown command.");
