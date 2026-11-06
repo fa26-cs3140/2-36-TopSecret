@@ -116,11 +116,18 @@ public class TopSecret {
                         database, audit, user, scanner, System.out);
                 messageMenu.printInboxNotice();
 
+                // Missions and agent assignments (Member A), admins only
+                AssignmentMenu assignmentMenu = new AssignmentMenu(
+                        database, scanner, System.out, audit);
+
                 while (true) {
                     System.out.println("\n=== TOP SECRET SYSTEM ===");
                     System.out.println("1. Existing Mission Menu");
                     System.out.println("2. Homework 5 Records Menu");
                     System.out.println("3. Messages");
+                    if (user.isAdmin()) {
+                        System.out.println("4. Missions and Assignments");
+                    }
                     System.out.println("0. Logout");
                     System.out.print("Choose an option: ");
 
@@ -138,6 +145,14 @@ public class TopSecret {
                         case "2" -> homework5Menu.run();
 
                         case "3" -> messageMenu.run();
+
+                        case "4" -> {
+                            if (user.isAdmin()) {
+                                assignmentMenu.run(user.getUsername());
+                            } else {
+                                System.out.println("Invalid choice. Try again.");
+                            }
+                        }
 
                         case "0" -> {
                             System.out.println("Goodbye!");
