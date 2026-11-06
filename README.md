@@ -41,8 +41,7 @@ Then open http://localhost:3002/ and log in. Create an account in the terminal f
 ## Folders
 
 - `database/`: sample data (`mission_briefs.tsv`, `agents.tsv`, `facilities.tsv`); `missions.db` is created here on first run
-- `data/`: Homework 3 ciphered mission files
-- `ciphers/`: key files (`key.txt` is the default key)
+- `ciphers/`: cipher key (`key.txt`) used to encipher `users.cip`
 - `docs/`: documentation for each part of the program
 - `src/main/java/`: `model`, `view`, and `controller` packages, plus `TopSecret.java` (entry point)
 - `src/test/java/`: JUnit tests, in the same packages as the classes they test

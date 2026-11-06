@@ -4,14 +4,24 @@ Architecture: Model-View-Controller (team)
   - Classes are organized into three packages:
       model       data and storage (Agent, Brief, Facility, Mission, ModelDatabase,
                   Message, SqliteMessageStore, UserAccount, CipheredUserStore,
-                  AuditLog, SqliteAuditLog, SqliteMissionStore, Access, Cipher, ...)
+                  AuditLog, SqliteAuditLog, SqliteMissionStore, Cipher, ...)
       view        what the user sees (HtmlView, WebPages, Homework5Menu,
-                  MissionMenu, MessageMenu, AssignmentMenu, AccessMenu, UserInterface)
-      controller  input and flow (WebController, LoginHandler, AccountManager,
-                  ProgramControl)
+                  MissionMenu, MessageMenu, AssignmentMenu)
+      controller  input and flow (WebController, LoginHandler, AccountManager)
   - TopSecret (the program's entry point) stays outside the packages so
     "java TopSecret", "./gradlew run", and the jar work unchanged.
   - Tests are in the same package as the class they test.
+
+Removed unused code (team)
+  - UserInterface, ProgramControl, FileHandler, their tests and docs, and the
+    data/ folder: the Homework 3 file viewer, no longer reachable from TopSecret
+    since Homework 4 replaced the text files with the database.
+  - MissionSearchService and MissionSearchTest: search is done by
+    SqliteMissionStore (through the MissionSearch interface).
+  - Access, AccessMenu, their tests, and docs/access_levels.txt: a second
+    access-level system (user_access table) that was never connected. Admin and
+    standard levels are kept in users.cip (UserAccount) and managed from the
+    records menu ("Manage User Access").
 
 Web view (Team Member B, control)
   - "java -jar build/libs/TopSecret.jar -web" (or ./gradlew run --args="-web")

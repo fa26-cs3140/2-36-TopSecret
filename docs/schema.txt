@@ -131,16 +131,10 @@ CREATE TABLE IF NOT EXISTS mission_briefs (
   SqliteMissionStore, not ModelDatabase); AssignmentMenu checks that the mission
   exists before attaching a brief.
 
-Access levels table (Team Member A, created by model.Access)
-CREATE TABLE IF NOT EXISTS user_access (
-    username TEXT PRIMARY KEY,
-    level TEXT NOT NULL      -- ADMIN or STANDARD
-);
-- The first registered user is ADMIN, everyone after is STANDARD.
-
 Where data lives
 - Every table above is in database/missions.db (created on first run).
 - User accounts and passwords are NOT in the database: they are ciphered in
-  users.cip (see docs/accounts_audit.txt). audit_log.username,
-  messages.sender and user_access.username refer to those usernames.
+  users.cip with each user's ADMIN or STANDARD level (see
+  docs/accounts_audit.txt). audit_log.username and messages.sender refer to
+  those usernames.
 - The full diagram is docs/UML_ERD.pdf.

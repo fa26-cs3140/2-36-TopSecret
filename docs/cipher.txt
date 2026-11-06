@@ -19,13 +19,14 @@ If not, an IllegalArgumentException is thrown.
 An empty key is allowed and leaves the text unchanged.
 
 How it connects:
-Cipher does not read files. FileHandler reads the key file,
-ProgramControl passes the key text into new Cipher(key),
-then calls decipher(text) on the file contents.
+Cipher does not read files. CipheredUserStore reads ciphers/key.txt,
+passes the key text into new Cipher(key), and uses it to decipher
+users.cip when loading accounts and encipher it when saving.
 
 Methods:
 Cipher(String key)       builds the cipher and validates the key
 String decipher(String)  returns the deciphered text
+String encipher(String)  returns the ciphered text (the reverse)
 
 Tests (CipherTest.java):
 - Decipher a word
