@@ -139,7 +139,43 @@ public class HtmlView {
     public String renderMessage(String message) {
         return "<p>" + escape(message) + "</p>\n";
     }
+    public String renderFacilityForm(
+            String action,
+            String name,
+            String abbreviation,
+            String selectedCountryId,
+            java.util.Map<String, String> countries) {
 
+        StringBuilder html = new StringBuilder();
+
+        html.append("<form method=\"post\" action=\"")
+                .append(escape(action)).append("\">");
+
+        html.append("<label>Name <input name=\"name\" value=\"")
+                .append(escape(name)).append("\" required></label><br>");
+
+        html.append("<label>Abbreviation <input name=\"abbreviation\" value=\"")
+                .append(escape(abbreviation)).append("\" required></label><br>");
+
+        html.append("<label>Country <select name=\"countryId\" required>")
+                .append("<option value=\"\">Choose a country</option>");
+
+        for (var country : countries.entrySet()) {
+            html.append("<option value=\"")
+                    .append(escape(country.getKey())).append("\"");
+
+            if (country.getKey().equals(selectedCountryId)) {
+                html.append(" selected");
+            }
+
+            html.append(">").append(escape(country.getValue()))
+                    .append("</option>");
+        }
+
+        return html.append("</select></label><br>")
+                .append("<button type=\"submit\">Save</button></form>")
+                .toString();
+    }
     // Converts unsafe characters into HTML entities.
     public String escape(String text) {
         if (text == null) {
