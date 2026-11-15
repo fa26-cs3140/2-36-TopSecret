@@ -1,5 +1,5 @@
 package view;
-
+import model.Message;
 import java.util.List;
 public class HtmlView {
 
@@ -27,7 +27,8 @@ public class HtmlView {
         html.append("<a href=\"/briefs\">Briefs</a> | ");
         html.append("<a href=\"/agents\">Agents</a> | ");
         html.append("<a href=\"/facilities\">Facilities</a> | ");
-        html.append("<a href=\"/missions\">Missions</a>");
+        html.append("<a href=\"/missions\">Missions</a> | ");
+        html.append("<a href=\"/messages\">Messages</a>");
 
         if (admin) {
             html.append(" | <a href=\"/audit\">Audit Log</a>");
@@ -138,6 +139,122 @@ public class HtmlView {
     // Displays an informational message.
     public String renderMessage(String message) {
         return "<p>" + escape(message) + "</p>\n";
+    }
+
+    // HW7 Part C: Display the logged-in agent's inbox.
+    public String renderInbox(List<Message> messages) {
+        StringBuilder html = new StringBuilder();
+
+        html.append("<h3>My Messages</h3>\n");
+        html.append("<p><a href=\"/messages/new\">Compose Message</a></p>\n");
+
+        if (messages == null || messages.isEmpty()) {
+            html.append("<p>No messages available.</p>\n");
+            return html.toString();
+        }
+
+        html.append("<table border=\"1\">\n");
+        html.append("<tr><th>Status</th><th>From</th>");
+        html.append("<th>Date</th><th>Message</th></tr>\n");
+
+        for (Message message : messages) {
+            html.append("<tr>");
+
+            html.append("<td>")
+                    .append(message.isRead() ? "Read" : "Unread")
+                    .append("</td>");
+
+            html.append("<td>")
+                    .append(escape(message.getSender()))
+                    .append("</td>");
+
+            html.append("<td>")
+                    .append(escape(message.getSentAt()))
+                    .append("</td>");
+
+            html.append("<td><a href=\"/messages/")
+                    .append(message.getId())
+                    .append("\">View Message</a></td>");
+
+            html.append("</tr>\n");
+        }
+
+        html.append("</table>\n");
+        return html.toString();
+    }
+
+    // HW7 Part C: Display an individual message.
+    public String renderMessageDetails(Message message) {
+        if (message == null) {
+            return renderMessage("Message not found.");
+        }
+
+        StringBuilder html = new StringBuilder();
+
+        html.append("<h3>Message Details</h3>\n");
+
+        html.append("<p><strong>From:</strong> ")
+                .append(escape(message.getSender()))
+                .append("</p>\n");
+
+        html.append("<p><strong>To:</strong> ")
+                .append(escape(message.getAgentName()))
+                .append("</p>\n");
+
+        html.append("<p><strong>Date:</strong> ")
+                .append(escape(message.getSentAt()))
+                .append("</p>\n");
+
+        html.append("<h4>Message</h4>\n");
+
+        html.append("<pre>")
+                .append(escape(message.getText()))
+                .append("</pre>\n");
+
+        html.append("<p><a href=\"/messages\">Back to Inbox</a></p>\n");
+
+        return html.toString();
+    }
+
+    // HW7 Part C: Form for sending a new message.
+    public String renderComposeMessage(List<String> agentNames) {
+        StringBuilder html = new StringBuilder();
+
+        html.append("<h3>Compose Message</h3>\n");
+
+        html.append("<form method=\"POST\" action=\"/messages/send\">\n");
+
+        html.append("<label for=\"agentName\">Recipient:</label>\n");
+        html.append("<select id=\"agentName\" name=\"agentName\" required>\n");
+
+        html.append("<option value=\"\">Select an agent</option>\n");
+
+        if (agentNames != null) {
+            for (String name : agentNames) {
+                html.append("<option value=\"")
+                        .append(escape(name))
+                        .append("\">")
+                        .append(escape(name))
+                        .append("</option>\n");
+            }
+        }
+
+        html.append("</select><br><br>\n");
+
+        html.append("<label for=\"text\">Message:</label><br>\n");
+
+        html.append("<textarea id=\"text\" name=\"text\" ")
+                .append("rows=\"6\" cols=\"50\" required></textarea>\n");
+
+        html.append("<br><br>\n");
+
+        html.append("<button type=\"submit\">Send Message</button>\n");
+
+        html.append("</form>\n");
+
+        html.append("<p><a href=\"/messages\">Back to Inbox</a></p>\n");
+
+        return html.toString();
     }
 
     // Converts unsafe characters into HTML entities.
