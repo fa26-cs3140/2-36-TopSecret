@@ -59,9 +59,19 @@ public class TopSecret {
                         webDatabase.createTables();
                         webDatabase.importSampleData(Path.of("database"));
 
+                        // HW7 Part C: Connect messages to the web interface.
+                        SqliteMessageStore webMessages = new SqliteMessageStore(
+                                SqliteMissionStore.DEFAULT_DB_FILE);
+
                         WebController web = new WebController(
                                 accounts,
-                                new WebPages(webConnection, webStore, webAudit));
+                                new WebPages(
+                                        webConnection,
+                                        webStore,
+                                        webAudit,
+                                        webMessages
+                                )
+                        );
 
                         web.start();
 
