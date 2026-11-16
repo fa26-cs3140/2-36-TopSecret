@@ -1,3 +1,19 @@
+import controller.AccountManager;
+import view.AssignmentMenu;
+import model.AuditLog;
+import model.CipheredUserStore;
+import view.Homework5Menu;
+import controller.LoginHandler;
+import view.MessageMenu;
+import view.MissionMenu;
+import model.MissionStore;
+import model.ModelDatabase;
+import model.SqliteAuditLog;
+import model.SqliteMessageStore;
+import model.SqliteMissionStore;
+import model.UserAccount;
+import controller.WebController;
+import view.WebPages;
 import java.io.UncheckedIOException;
 import java.nio.file.Path;
 import java.util.Scanner;
@@ -19,7 +35,59 @@ public class TopSecret {
                 loginHandler.changePassword();
                 return;
             }
+            // Start web mode before terminal authentication.
+            if (args.length == 1 && args[0].equals("-web")) {
+                if (!accounts.hasAccounts()) {
+                    System.out.println(
+                            "Create a user account in terminal mode first.");
+                    return;
+                }
 
+                try {
+                    MissionStore webStore = new SqliteMissionStore();
+
+                    AuditLog webAudit = new SqliteAuditLog(
+                            SqliteMissionStore.DEFAULT_DB_FILE);
+
+                    Connection webConnection = DriverManager.getConnection(
+                            "jdbc:sqlite:" + SqliteMissionStore.DEFAULT_DB_FILE);
+
+                    try {
+                        ModelDatabase webDatabase =
+                                new ModelDatabase(webConnection);
+
+                        webDatabase.createTables();
+                        webDatabase.importSampleData(Path.of("database"));
+
+                        WebController web = new WebController(
+                                accounts,
+                                new WebPages(webConnection, webStore, webAudit));
+
+                        web.start();
+
+                        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+                            web.stop();
+
+                            try {
+                                webConnection.close();
+                            } catch (SQLException ignored) {
+                            }
+                        }));
+
+                        System.out.println(
+                                "Web interface: http://localhost:3002/");
+
+                    } catch (SQLException | RuntimeException e) {
+                        webConnection.close();
+                        throw e;
+                    }
+
+                } catch (SQLException e) {
+                    System.out.println("Database error: " + e.getMessage());
+                }
+
+                return;
+            }
             // Reject unknown command-line arguments.
             if (args.length != 0) {
                 System.out.println("Unknown command.");
@@ -64,11 +132,18 @@ public class TopSecret {
                         database, audit, user, scanner, System.out);
                 messageMenu.printInboxNotice();
 
+                // Missions and agent assignments (Member A), admins only
+                AssignmentMenu assignmentMenu = new AssignmentMenu(
+                        database, scanner, System.out, audit);
+
                 while (true) {
                     System.out.println("\n=== TOP SECRET SYSTEM ===");
                     System.out.println("1. Existing Mission Menu");
                     System.out.println("2. Homework 5 Records Menu");
                     System.out.println("3. Messages");
+                    if (user.isAdmin()) {
+                        System.out.println("4. Missions and Assignments");
+                    }
                     System.out.println("0. Logout");
                     System.out.print("Choose an option: ");
 
@@ -86,6 +161,14 @@ public class TopSecret {
                         case "2" -> homework5Menu.run();
 
                         case "3" -> messageMenu.run();
+
+                        case "4" -> {
+                            if (user.isAdmin()) {
+                                assignmentMenu.run(user.getUsername());
+                            } else {
+                                System.out.println("Invalid choice. Try again.");
+                            }
+                        }
 
                         case "0" -> {
                             System.out.println("Goodbye!");
