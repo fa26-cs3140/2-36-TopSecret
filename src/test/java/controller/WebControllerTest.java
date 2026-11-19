@@ -263,4 +263,18 @@ public class WebControllerTest {
                 request("POST", "/login",
                         "x".repeat(8193), null).statusCode());
     }
+    @Test
+    void standardUserCannotOpenOrSubmitFacilityForms() throws Exception {
+        controller.start();
+        String cookie = login("Lina");
+
+        for (String path : new String[]{
+                "/facilities/new", "/facilities/edit?id=42"
+        }) {
+            assertEquals(403,
+                    request("GET", path, "", cookie).statusCode());
+            assertEquals(403,
+                    request("POST", path, "", cookie).statusCode());
+        }
+    }
 }

@@ -135,8 +135,12 @@ public class WebController {
                 return;
             }
 
-            if (!method.equals("GET")) {
-                methodNotAllowed(exchange, "GET");
+            boolean facilityForm = path.equals("/facilities/new")
+                    || path.equals("/facilities/edit");
+
+            if (!method.equals("GET")
+                    && !(facilityForm && method.equals("POST"))) {
+                methodNotAllowed(exchange, facilityForm ? "GET, POST" : "GET");
                 return;
             }
 
@@ -150,6 +154,18 @@ public class WebController {
                     redirect(exchange, "/login");
                 }
 
+                return;
+            }
+
+            if (facilityForm) {
+                if (!user.isAdmin()) {
+                    send(exchange, 403,
+                            view.renderMessage("Administrator access required."));
+                    return;
+                }
+
+                send(exchange, 501,
+                        view.renderMessage("Facility editing is still being implemented."));
                 return;
             }
 
