@@ -1,10 +1,18 @@
 package controller;
 
 import model.UserAccount;
+import model.AuditLog;
+import model.MissionStore;
+import model.ModelDatabase;
+import model.SqliteMessageStore;
 import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.io.TempDir;
+import view.WebPages;
 
 import java.net.URI;
 import java.net.http.*;
+import java.nio.file.Path;
+import java.sql.DriverManager;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
@@ -228,6 +236,44 @@ public class WebControllerTest {
 
         assertEquals(404,
                 request("GET", "/missing", "", cookie).statusCode());
+    }
+
+    @Test
+    void sendsAndReadsMessagesOnlyAsTheRecipient(@TempDir Path dir) throws Exception {
+        Path db = dir.resolve("web.db");
+        try (var connection = DriverManager.getConnection("jdbc:sqlite:" + db)) {
+            ModelDatabase model = new ModelDatabase(connection);
+            model.createTables();
+            int facility = model.addFacility("Test Facility", "TF");
+            model.addAgent("Lina", null, null, null, facility);
+            var messages = new SqliteMessageStore(db);
+            var webPages = new WebPages(connection, mock(MissionStore.class),
+                    mock(AuditLog.class), messages);
+            controller = new WebController(accounts, webPages, 0);
+            controller.start();
+            try {
+                String form = "agentName=Lina&text=Hello+%26+welcome";
+                assertEquals(303, request("POST", "/messages/send", form, null).statusCode());
+                assertTrue(messages.getMessagesFor("Lina").isEmpty());
+
+                String sender = login("Admin");
+                String recipient = login("Lina");
+                assertTrue(request("GET", "/messages/new", "", sender).body().contains("Lina"));
+                var sent = request("POST", "/messages/send", form, sender);
+                assertEquals(303, sent.statusCode());
+                assertEquals("/messages", sent.headers().firstValue("Location").orElseThrow());
+
+                var message = messages.getMessagesFor("Lina").getFirst();
+                String detail = "/messages/" + message.getId();
+                assertTrue(request("GET", "/messages", "", recipient).body().contains("Unread"));
+                assertTrue(request("GET", detail, "", sender).body().contains("Message not found"));
+                assertFalse(messages.getMessage(message.getId(), "Lina").isRead());
+                assertTrue(request("GET", detail, "", recipient).body().contains("Hello &amp; welcome"));
+                assertTrue(messages.getMessage(message.getId(), "Lina").isRead());
+            } finally {
+                controller.stop();
+            }
+        }
     }
 
     @Test
