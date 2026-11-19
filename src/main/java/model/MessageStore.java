@@ -20,6 +20,9 @@ public interface MessageStore {
     // Oldest first.
     List<Message> getMessagesFor(String username);
 
+    // Web accounts are case-sensitive.
+    List<Message> getMessagesForExactRecipient(String username);
+
     // HW7 Part C: Retrieve one message.
     // Only the intended recipient can access it.
     // Returns null if the message does not exist

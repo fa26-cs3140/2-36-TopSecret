@@ -104,10 +104,11 @@ public class SqliteMessageStore implements MessageStore {
             try (PreparedStatement ps = conn.prepareStatement(
                     "SELECT id, name FROM agents " +
                             "WHERE LOWER(name) = LOWER(?) " +
-                            "ORDER BY id LIMIT 1")) {
+                            "ORDER BY CASE WHEN name = ? THEN 0 ELSE 1 END, id LIMIT 1")) {
 
-                ps.setString(1,
-                        agentName == null ? "" : agentName.trim());
+                String requestedName = agentName == null ? "" : agentName.trim();
+                ps.setString(1, requestedName);
+                ps.setString(2, requestedName);
 
                 try (ResultSet rs = ps.executeQuery()) {
                     if (rs.next()) {
@@ -159,6 +160,15 @@ public class SqliteMessageStore implements MessageStore {
 
     @Override
     public List<Message> getMessagesFor(String username) {
+        return findMessages(username, false);
+    }
+
+    @Override
+    public List<Message> getMessagesForExactRecipient(String username) {
+        return findMessages(username, true);
+    }
+
+    private List<Message> findMessages(String username, boolean exactRecipient) {
 
         List<Message> messages = new ArrayList<>();
 
@@ -166,14 +176,15 @@ public class SqliteMessageStore implements MessageStore {
             return messages;
         }
 
+        String recipientMatch = exactRecipient ? "a.name = ?" : "LOWER(a.name) = LOWER(?)";
         String sql = """
             SELECT m.id, a.name, m.sender,
                    m.text, m.sent_at, m.is_read
             FROM messages m
             JOIN agents a ON a.id = m.agent_id
-            WHERE LOWER(a.name) = LOWER(?)
+            WHERE %s
             ORDER BY m.id
-            """;
+            """.formatted(recipientMatch);
 
         try (Connection conn = open();
              PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -208,7 +219,7 @@ public class SqliteMessageStore implements MessageStore {
             FROM messages m
             JOIN agents a ON a.id = m.agent_id
             WHERE m.id = ?
-              AND LOWER(a.name) = LOWER(?)
+              AND a.name = ?
             """;
 
         try (Connection conn = open();
@@ -245,7 +256,7 @@ public class SqliteMessageStore implements MessageStore {
             WHERE id = ?
               AND agent_id IN (
                   SELECT id FROM agents
-                  WHERE LOWER(name) = LOWER(?)
+                  WHERE name = ?
               )
             """;
 

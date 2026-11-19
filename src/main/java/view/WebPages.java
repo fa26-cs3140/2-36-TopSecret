@@ -141,7 +141,7 @@ public class WebPages implements WebController.Pages {
         }
 
         return view.renderInbox(
-                messages.getMessagesFor(user.getUsername()));
+                messages.getMessagesForExactRecipient(user.getUsername()));
     }
 
     // HW7 Part C: Display the compose-message form.
