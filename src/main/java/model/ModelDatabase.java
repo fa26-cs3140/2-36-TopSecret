@@ -22,8 +22,20 @@ public class ModelDatabase {
 
     public void createTables() throws SQLException {
         try (Statement s = connection.createStatement()) {
+            // HW7: a facility is assigned to one country (NULL = none). A country may
+            // have zero or more facilities.
+            s.executeUpdate("CREATE TABLE IF NOT EXISTS countries (" +
+                    "id INTEGER PRIMARY KEY, name TEXT NOT NULL UNIQUE COLLATE NOCASE)");
+
             s.executeUpdate("CREATE TABLE IF NOT EXISTS facilities (" +
-                    "id INTEGER PRIMARY KEY, name TEXT NOT NULL, abbreviation TEXT NOT NULL)");
+                    "id INTEGER PRIMARY KEY, name TEXT NOT NULL, abbreviation TEXT NOT NULL, " +
+                    "country_id INTEGER REFERENCES countries(id) ON DELETE RESTRICT)");
+
+            // A database made before countries existed has no country_id column yet
+            if (!hasColumn("facilities", "country_id")) {
+                s.executeUpdate("ALTER TABLE facilities ADD COLUMN country_id " +
+                        "INTEGER REFERENCES countries(id) ON DELETE RESTRICT");
+            }
 
             s.executeUpdate("CREATE TABLE IF NOT EXISTS agents (" +
                     "id INTEGER PRIMARY KEY, name TEXT NOT NULL, " +
@@ -53,6 +65,18 @@ public class ModelDatabase {
                     "brief_id INTEGER NOT NULL UNIQUE REFERENCES briefs(id) ON DELETE CASCADE, " +
                     "PRIMARY KEY(mission_id, brief_id))");
         }
+    }
+
+    // True if the table already has a column with this name.
+    // The table and column names are always fixed strings from this class.
+    private boolean hasColumn(String table, String column) throws SQLException {
+        try (Statement s = connection.createStatement();
+             ResultSet r = s.executeQuery("PRAGMA table_info(" + table + ")")) {
+            while (r.next())
+                if (column.equalsIgnoreCase(r.getString("name")))
+                    return true;
+        }
+        return false;
     }
 
     private int execute(String sql, Object... values) throws SQLException {
@@ -97,9 +121,52 @@ public class ModelDatabase {
              ResultSet r = s.executeQuery("SELECT * FROM facilities ORDER BY id")) {
             while (r.next())
                 result.add(new Facility(r.getInt("id"),
-                        r.getString("name"), r.getString("abbreviation")));
+                        r.getString("name"), r.getString("abbreviation"),
+                        r.getInt("country_id"))); // NULL reads as 0 = no country
         }
         return result;
+    }
+
+    // ---------- Countries ----------
+
+    // All countries ordered by id.
+    public List<Country> getCountries() throws SQLException {
+        List<Country> result = new ArrayList<>();
+
+        try (Statement s = connection.createStatement();
+             ResultSet r = s.executeQuery("SELECT id, name FROM countries ORDER BY id")) {
+            while (r.next())
+                result.add(new Country(r.getInt("id"), r.getString("name")));
+        }
+        return result;
+    }
+
+    // The country with this id, or null if there is none.
+    public Country getCountry(int id) throws SQLException {
+        try (PreparedStatement p = connection.prepareStatement(
+                "SELECT id, name FROM countries WHERE id=?")) {
+            p.setInt(1, id);
+            try (ResultSet r = p.executeQuery()) {
+                if (r.next())
+                    return new Country(r.getInt("id"), r.getString("name"));
+            }
+        }
+        return null;
+    }
+
+    // The country this facility is assigned to, or null if it has none
+    // (or there is no such facility).
+    public Country getCountryForFacility(int facilityId) throws SQLException {
+        try (PreparedStatement p = connection.prepareStatement(
+                "SELECT c.id, c.name FROM facilities f " +
+                        "JOIN countries c ON c.id = f.country_id WHERE f.id=?")) {
+            p.setInt(1, facilityId);
+            try (ResultSet r = p.executeQuery()) {
+                if (r.next())
+                    return new Country(r.getInt("id"), r.getString("name"));
+            }
+        }
+        return null;
     }
 
     public List<Agent> getAgents() throws SQLException {
@@ -395,13 +462,13 @@ public class ModelDatabase {
 
     // ---------- Sample data ----------
 
-    // Loads facilities.tsv, agents.tsv and mission_briefs.tsv from the folder.
+    // Loads countries.tsv, facilities.tsv, agents.tsv and mission_briefs.tsv from the folder.
     // Each table is only filled when it is empty, so this is safe to run every time.
     // Missing files are skipped so the program still runs without them.
     // agents.tsv has no facility column, so agents are spread across the
     // facilities in order (agent 1 -> facility 1, agent 2 -> facility 2, ...).
     public int importSampleData(Path folder) throws SQLException {
-        int added = 0;
+        int added = importCountries(folder);
 
         if (getFacilities().isEmpty()) {
             for (String[] row : readTsv(folder.resolve("facilities.tsv"), 2)) {
@@ -427,6 +494,25 @@ public class ModelDatabase {
                     addBrief(row[0], row[1], row[2]);
                     added++;
                 }
+            }
+        }
+        return added;
+    }
+
+    // Loads countries.tsv (one country name per line) from the folder.
+    // Only fills an empty table, so it is safe to run every time. Blank lines and
+    // repeated names are skipped, and a missing file adds nothing.
+    // Returns how many countries were added.
+    public int importCountries(Path folder) throws SQLException {
+        if (!getCountries().isEmpty())
+            return 0;
+
+        Set<String> seen = new HashSet<>();
+        int added = 0;
+        for (String[] row : readTsv(folder.resolve("countries.tsv"), 1)) {
+            if (seen.add(row[0].toLowerCase(Locale.ROOT))) {
+                execute("INSERT INTO countries(name) VALUES (?)", row[0]);
+                added++;
             }
         }
         return added;
