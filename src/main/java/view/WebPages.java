@@ -7,6 +7,9 @@ import model.MissionStore;
 import model.UserAccount;
 import controller.WebController;
 import view.HtmlView;
+import model.Message;
+import model.MessageStore;
+import java.util.ArrayList;
 
 import java.sql.*;
 import java.util.*;
@@ -17,17 +20,29 @@ public class WebPages implements WebController.Pages {
     private final Connection connection;
     private final MissionStore missions;
     private final AuditLog audit;
+    private final MessageStore messages;
 
     private final HtmlView view = new HtmlView();
+
 
     public WebPages(
             Connection connection,
             MissionStore missions,
             AuditLog audit) {
 
+        this(connection, missions, audit, null);
+    }
+
+    public WebPages(
+            Connection connection,
+            MissionStore missions,
+            AuditLog audit,
+            MessageStore messages) {
+
         this.connection = Objects.requireNonNull(connection);
         this.missions = Objects.requireNonNull(missions);
         this.audit = Objects.requireNonNull(audit);
+        this.messages = messages;
     }
 
     @Override
@@ -37,6 +52,13 @@ public class WebPages implements WebController.Pages {
         if (path.equals("/")) {
             return view.renderMessage(
                     "Welcome, " + user.getUsername());
+        }
+        if (path.equals("/messages")) {
+            return renderInbox(user);
+        }
+
+        if (path.equals("/messages/new")) {
+            return renderComposeMessage();
         }
 
         if (path.equals("/audit")) {
@@ -110,6 +132,65 @@ public class WebPages implements WebController.Pages {
                 "Web " + path.substring(1));
 
         return html;
+    }
+
+    // HW7 Part C: Display the logged-in agent's inbox.
+    public String renderInbox(UserAccount user) {
+        if (messages == null) {
+            return view.renderMessage("Messaging is not configured.");
+        }
+
+        return view.renderInbox(
+                messages.getMessagesFor(user.getUsername()));
+    }
+
+    // HW7 Part C: Display the compose-message form.
+    public synchronized String renderComposeMessage()
+            throws SQLException {
+
+        List<String> agentNames = new ArrayList<>();
+
+        try (Statement statement = connection.createStatement();
+             ResultSet rs = statement.executeQuery(
+                     "SELECT name FROM agents ORDER BY name")) {
+
+            while (rs.next()) {
+                agentNames.add(rs.getString("name"));
+            }
+        }
+
+        return view.renderComposeMessage(agentNames);
+    }
+
+    // HW7 Part C: Display a message and mark it as read.
+    public String renderMessageDetails(int messageId, UserAccount user) {
+        if (messages == null) {
+            return view.renderMessage("Messaging is not configured.");
+        }
+
+        String username = user.getUsername();
+
+        Message message = messages.getMessage(messageId, username);
+
+        if (message == null) {
+            return view.renderMessage("Message not found.");
+        }
+
+        messages.markAsRead(messageId, username);
+
+        return view.renderMessageDetails(message);
+    }
+
+    // HW7 Part C: Send a message.
+    public void sendMessage(
+            UserAccount user, String agentName, String text) {
+
+        if (messages == null) {
+            throw new IllegalStateException(
+                    "Messaging is not configured.");
+        }
+
+        messages.send(user.getUsername(), agentName, text);
     }
 
     private List<List<String>> rows(String sql) throws SQLException {
