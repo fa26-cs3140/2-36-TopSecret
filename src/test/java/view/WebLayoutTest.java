@@ -168,4 +168,24 @@ class WebLayoutTest {
     private static long count(String s, char c) {
         return s.chars().filter(ch -> ch == c).count();
     }
+
+    // ---------- HW7 integration: admin menu ----------
+
+    @Test
+    void menuLinksToMessages() {
+        assertTrue(WebLayout.menu().contains("href=\"/messages\""));
+    }
+
+    @Test
+    void onlyAdminsGetTheAuditLogLink() {
+        assertFalse(WebLayout.menu().contains("/audit"));
+        assertFalse(WebLayout.menu(false).contains("/audit"));
+        assertTrue(WebLayout.menu(true).contains("href=\"/audit\""));
+    }
+
+    @Test
+    void adminPageUsesTheAdminMenu() {
+        assertTrue(WebLayout.page("Home", "", true).contains("Audit Log"));
+        assertFalse(WebLayout.page("Home", "", false).contains("Audit Log"));
+    }
 }

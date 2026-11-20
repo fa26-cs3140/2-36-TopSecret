@@ -17,6 +17,11 @@ public class WebLayout {
     // The title is plain text and is escaped. bodyHtml is already HTML and is used as given,
     // so callers must escape any user text they put in it (see escape).
     public static String page(String title, String bodyHtml) {
+        return page(title, bodyHtml, false);
+    }
+
+    // Same page, with the admin-only menu links when admin is true
+    public static String page(String title, String bodyHtml, boolean admin) {
         String heading = (title == null || title.isBlank())
                 ? SITE_NAME : escape(title) + " - " + SITE_NAME;
         return "<!DOCTYPE html>\n"
@@ -28,7 +33,7 @@ public class WebLayout {
                 + "<link rel=\"stylesheet\" href=\"" + STYLESHEET_PATH + "\">\n"
                 + "</head>\n"
                 + "<body>\n"
-                + menu() + "\n"
+                + menu(admin) + "\n"
                 + "<main>\n"
                 + (bodyHtml == null ? "" : bodyHtml) + "\n"
                 + "</main>\n"
@@ -38,6 +43,11 @@ public class WebLayout {
 
     // The menu shown on every page, with the log out link
     public static String menu() {
+        return menu(false);
+    }
+
+    // Admins also get the audit log link
+    public static String menu(boolean admin) {
         return "<nav>\n"
                 + "<span class=\"brand\">" + SITE_NAME + "</span>\n"
                 + "<a href=\"/\">Home</a>\n"
@@ -46,6 +56,8 @@ public class WebLayout {
                 + "<a href=\"/countries\">Countries</a>\n"
                 + "<a href=\"/missions\">Missions</a>\n"
                 + "<a href=\"/briefs\">Briefs</a>\n"
+                + "<a href=\"/messages\">Messages</a>\n"
+                + (admin ? "<a href=\"/audit\">Audit Log</a>\n" : "")
                 + "<a class=\"logout\" href=\"/logout\">Log out</a>\n"
                 + "</nav>";
     }
