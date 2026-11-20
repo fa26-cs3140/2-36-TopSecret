@@ -5,13 +5,14 @@ import java.util.ArrayList;
 import java.util.List;
 
 // Search across every text field of every record type (Member D):
-// missions, briefs, agents, and facilities.
+// missions, briefs, agents, facilities, and countries.
 public class RecordSearch {
 
     public static final String MISSION = "Mission";
     public static final String BRIEF = "Brief";
     public static final String AGENT = "Agent";
     public static final String FACILITY = "Facility";
+    public static final String COUNTRY = "Country";
 
     private final ModelDatabase database;
 
@@ -20,7 +21,7 @@ public class RecordSearch {
     }
 
     // Records with any text field containing the term, ignoring case.
-    // Ordered missions, briefs, agents, facilities, each by id.
+    // Ordered missions, briefs, agents, facilities, countries, each by id.
     // A null or blank term gives an empty list.
     public List<SearchResult> search(String term) throws SQLException {
         List<SearchResult> results = new ArrayList<>();
@@ -46,6 +47,11 @@ public class RecordSearch {
         for (Facility f : database.getFacilities()) {
             if (matches(needle, f.getName(), f.getAbbreviation())) {
                 results.add(new SearchResult(FACILITY, f.getId(), f.getName()));
+            }
+        }
+        for (Country c : database.getCountries()) {
+            if (matches(needle, c.getName())) {
+                results.add(new SearchResult(COUNTRY, c.getId(), c.getName()));
             }
         }
         return results;

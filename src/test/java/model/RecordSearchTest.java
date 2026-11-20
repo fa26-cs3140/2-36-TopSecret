@@ -137,4 +137,13 @@ class RecordSearchTest {
         assertTrue(search.search("%").isEmpty());
         assertTrue(search.search("_").isEmpty());
     }
+
+    @Test
+    void findsCountryByName() throws Exception {
+        db.addCountry("Norway");
+        db.addCountry("Chile");
+
+        assertEquals(List.of("Country #1: Norway"), lines("norw"));
+        assertEquals(RecordSearch.COUNTRY, search.search("chile").get(0).getType());
+    }
 }
