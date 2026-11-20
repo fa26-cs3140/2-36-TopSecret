@@ -3,38 +3,56 @@ import model.Message;
 import java.util.List;
 public class HtmlView {
 
-    // Creates a complete HTML page.
+    // Creates a complete HTML page with the shared menu and stylesheet.
     public String renderPage(String title, String content,
                              boolean admin) {
-        return "<!DOCTYPE html>\n"
-                + "<html lang=\"en\">\n"
-                + "<head><meta charset=\"UTF-8\">"
-                + "<title>" + escape(title) + "</title></head>\n"
-                + "<body>\n"
-                + "<h1>TOP SECRET SYSTEM</h1>\n"
-                + navigation(admin)
-                + "<h2>" + escape(title) + "</h2>\n"
-                + (content == null ? "" : content)
-                + "\n</body>\n</html>";
+        return WebLayout.page(title,
+                "<h2>" + escape(title) + "</h2>\n"
+                        + (content == null ? "" : content),
+                admin);
     }
 
     // Navigation links for the web interface.
     public String navigation(boolean admin) {
+        return WebLayout.menu(admin);
+    }
+
+    // Like renderTable, but the second cell of each row (the name or title)
+    // links to that record's page: basePath + "/" + the id in the first cell.
+    public String renderLinkedTable(List<String> headers,
+                                    List<List<String>> rows,
+                                    String basePath) {
         StringBuilder html = new StringBuilder();
 
-        html.append("<nav>");
-        html.append("<a href=\"/\">Home</a> | ");
-        html.append("<a href=\"/briefs\">Briefs</a> | ");
-        html.append("<a href=\"/agents\">Agents</a> | ");
-        html.append("<a href=\"/facilities\">Facilities</a> | ");
-        html.append("<a href=\"/missions\">Missions</a> | ");
-        html.append("<a href=\"/messages\">Messages</a>");
+        html.append("<table>\n<thead><tr>");
 
-        if (admin) {
-            html.append(" | <a href=\"/audit\">Audit Log</a>");
+        for (String header : headers) {
+            html.append("<th>").append(escape(header)).append("</th>");
         }
 
-        html.append("</nav><hr>\n");
+        html.append("</tr></thead>\n<tbody>\n");
+
+        for (List<String> row : rows) {
+            html.append("<tr>");
+
+            for (int i = 0; i < row.size(); i++) {
+                html.append("<td>");
+
+                if (i == 1) {
+                    html.append("<a href=\"").append(escape(basePath))
+                            .append("/").append(escape(row.get(0))).append("\">")
+                            .append(escape(row.get(i))).append("</a>");
+                } else {
+                    html.append(escape(row.get(i)));
+                }
+
+                html.append("</td>");
+            }
+
+            html.append("</tr>\n");
+        }
+
+        html.append("</tbody>\n</table>\n");
         return html.toString();
     }
 

@@ -138,4 +138,28 @@ public class HtmlViewTest {
         assertTrue(html.contains("<option value=\"7\" selected>Morocco</option>"));
         assertTrue(html.contains("<option value=\"8\">Spain</option>"));
     }
+
+    // ---------- HW7 integration: shared layout and linked lists ----------
+
+    @Test
+    void pageUsesSharedStylesheetAndMenu() {
+        String html = view.renderPage("Agents", "<p>x</p>", false);
+
+        assertTrue(html.contains("href=\"/style.css\""));
+        assertTrue(html.contains("<nav"));
+        assertTrue(html.contains("Log out"));
+        assertTrue(html.contains("href=\"/countries\""));
+    }
+
+    @Test
+    void linkedTableLinksTheNameToTheRecord() {
+        String html = view.renderLinkedTable(
+                List.of("ID", "Name"),
+                List.of(List.of("7", "Ghost <1>")),
+                "/agents");
+
+        assertTrue(html.contains("<th>Name</th>"));
+        assertTrue(html.contains("<td>7</td>"));
+        assertTrue(html.contains("<td><a href=\"/agents/7\">Ghost &lt;1&gt;</a></td>"));
+    }
 }
