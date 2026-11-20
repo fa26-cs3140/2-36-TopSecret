@@ -5,11 +5,11 @@ import model.AuditLog;
 import model.Mission;
 import model.MissionStore;
 import model.UserAccount;
+import controller.PageResult;
 import controller.WebController;
-import view.HtmlView;
 import model.Message;
 import model.MessageStore;
-import java.util.ArrayList;
+import model.ModelDatabase;
 
 import java.sql.*;
 import java.util.*;
@@ -22,13 +22,16 @@ public class WebPages implements WebController.Pages {
     private final AuditLog audit;
     private final MessageStore messages;
 
+    private final ModelDatabase database;
+    private final RecordPages records;
+
     private final HtmlView view = new HtmlView();
 
 
     public WebPages(
             Connection connection,
             MissionStore missions,
-            AuditLog audit) {
+            AuditLog audit) throws SQLException {
 
         this(connection, missions, audit, null);
     }
@@ -37,12 +40,23 @@ public class WebPages implements WebController.Pages {
             Connection connection,
             MissionStore missions,
             AuditLog audit,
-            MessageStore messages) {
+            MessageStore messages) throws SQLException {
 
         this.connection = Objects.requireNonNull(connection);
         this.missions = Objects.requireNonNull(missions);
         this.audit = Objects.requireNonNull(audit);
         this.messages = messages;
+        this.database = new ModelDatabase(connection);
+        this.records = new RecordPages(database, audit);
+    }
+
+    // HW7: one record's page and the add/edit forms. Null for any other address.
+    @Override
+    public synchronized PageResult handle(
+            String method, String path,
+            Map<String, String> params, UserAccount user) throws SQLException {
+
+        return records.handle(method, path, params, user);
     }
 
     @Override
@@ -83,27 +97,42 @@ public class WebPages implements WebController.Pages {
 
         switch (path) {
             case "/agents":
-                html = view.renderAgents(rows(
-                        "SELECT id,name,date_of_birth,date_of_death,"
-                                + "notes,facility_id FROM agents ORDER BY id"));
+                html = view.renderLinkedTable(
+                        List.of("ID", "Name", "Date of Birth",
+                                "Date of Death", "Notes", "Facility"),
+                        rows("SELECT a.id,a.name,a.date_of_birth,a.date_of_death,"
+                                + "a.notes,f.name FROM agents a "
+                                + "LEFT JOIN facilities f ON f.id = a.facility_id "
+                                + "ORDER BY a.id"),
+                        path);
                 break;
 
             case "/facilities":
-                html = view.renderFacilities(rows(
-                        "SELECT id,name,abbreviation "
-                                + "FROM facilities ORDER BY id"));
+                html = view.renderLinkedTable(
+                        List.of("ID", "Name", "Abbreviation", "Country"),
+                        rows("SELECT f.id,f.name,f.abbreviation,c.name "
+                                + "FROM facilities f "
+                                + "LEFT JOIN countries c ON c.id = f.country_id "
+                                + "ORDER BY f.id"),
+                        path);
                 break;
 
             case "/briefs":
-                html = view.renderBriefs(rows(
-                        "SELECT id,title,date,text "
-                                + "FROM briefs ORDER BY id"));
+                html = view.renderLinkedTable(
+                        List.of("ID", "Title", "Date", "Text"),
+                        rows("SELECT id,title,date,text "
+                                + "FROM briefs ORDER BY id"),
+                        path);
+                break;
+
+            case "/countries":
+                html = CountryViews.countryListBody(database.getCountries());
                 break;
 
             case "/missions":
                 List<List<String>> data = new ArrayList<>();
 
-                for (Mission mission : missions.getAllMissions()) {
+                for (Mission mission : missionsWithLinks()) {
                     String agentIds = mission.getAgentIds()
                             .stream()
                             .map(String::valueOf)
@@ -119,7 +148,10 @@ public class WebPages implements WebController.Pages {
                     ));
                 }
 
-                html = view.renderMissions(data);
+                html = view.renderLinkedTable(
+                        List.of("ID", "Title", "Brief", "Date",
+                                "Facility ID", "Agent IDs"),
+                        data, path);
                 break;
 
             default:
@@ -131,7 +163,22 @@ public class WebPages implements WebController.Pages {
                 AuditLog.READ,
                 "Web " + path.substring(1));
 
+        // Admins can add a record from each list page
+        if (user.isAdmin()) {
+            html += "<p><a href=\"" + path + "/new\">Add new</a></p>\n";
+        }
+
         return html;
+    }
+
+    // Missions with their facility and agents. The mission store only knows the
+    // mission text, so the assignments come from the database when it has them.
+    private List<Mission> missionsWithLinks() {
+        try {
+            return database.getMissions();
+        } catch (SQLException e) {
+            return missions.getAllMissions();
+        }
     }
 
     // HW7 Part C: Display the logged-in agent's inbox.
