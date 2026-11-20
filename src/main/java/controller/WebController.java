@@ -137,8 +137,12 @@ public class WebController {
             }
 
             boolean sendMessage = path.equals("/messages/send");
-            String allowedMethod = sendMessage ? "POST" : "GET";
-            if (!method.equals(allowedMethod)) {
+            boolean facilityForm = path.equals("/facilities/new")
+                    || path.equals("/facilities/edit");
+
+            String allowedMethod = sendMessage ? "POST"
+                    : facilityForm ? "GET, POST" : "GET";
+            if (!List.of(allowedMethod.split(", ")).contains(method)) {
                 methodNotAllowed(exchange, allowedMethod);
                 return;
             }
@@ -158,6 +162,18 @@ public class WebController {
 
             if (sendMessage) {
                 sendMessage(exchange, user);
+                return;
+            }
+
+            if (facilityForm) {
+                if (!user.isAdmin()) {
+                    send(exchange, 403,
+                            view.renderMessage("Administrator access required."));
+                    return;
+                }
+
+                send(exchange, 501,
+                        view.renderMessage("Facility editing is still being implemented."));
                 return;
             }
 
