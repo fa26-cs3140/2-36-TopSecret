@@ -4,6 +4,7 @@ import model.UserAccount;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpServer;
 import view.HtmlView;
+import view.WebPages;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -135,8 +136,10 @@ public class WebController {
                 return;
             }
 
-            if (!method.equals("GET")) {
-                methodNotAllowed(exchange, "GET");
+            boolean sendMessage = path.equals("/messages/send");
+            String allowedMethod = sendMessage ? "POST" : "GET";
+            if (!method.equals(allowedMethod)) {
+                methodNotAllowed(exchange, allowedMethod);
                 return;
             }
 
@@ -153,9 +156,15 @@ public class WebController {
                 return;
             }
 
-            if (!Set.of(
+            if (sendMessage) {
+                sendMessage(exchange, user);
+                return;
+            }
+
+            boolean messageDetails = path.matches("/messages/[0-9]+");
+            if (!messageDetails && !Set.of(
                     "/", "/agents", "/facilities",
-                    "/briefs", "/missions", "/audit"
+                    "/briefs", "/missions", "/audit", "/messages", "/messages/new"
             ).contains(path)) {
                 send(exchange, 404,
                         view.renderMessage("Page not found."));
@@ -172,7 +181,29 @@ public class WebController {
                     ? "Home"
                     : path.substring(1);
 
-            String body = pages.render(path, user);
+            String body;
+            if (messageDetails) {
+                if (!(pages instanceof WebPages webPages)) {
+                    send(exchange, 500, view.renderMessage("Messaging is unavailable."));
+                    return;
+                }
+
+                int messageId;
+                try {
+                    messageId = Integer.parseInt(path.substring("/messages/".length()));
+                } catch (NumberFormatException e) {
+                    messageId = 0;
+                }
+                if (messageId <= 0) {
+                    send(exchange, 404, view.renderMessage("Message not found."));
+                    return;
+                }
+
+                title = "Message";
+                body = webPages.renderMessageDetails(messageId, user);
+            } else {
+                body = pages.render(path, user);
+            }
 
             body += """
                     <form method="post" action="/logout">
@@ -195,6 +226,35 @@ public class WebController {
         }
     }
 
+    private void sendMessage(HttpExchange exchange, UserAccount user) throws IOException {
+        if (!(pages instanceof WebPages webPages)) {
+            send(exchange, 500, view.renderMessage("Messaging is unavailable."));
+            return;
+        }
+
+        byte[] bytes = exchange.getRequestBody().readNBytes(8193);
+        if (bytes.length > 8192) {
+            send(exchange, 413, view.renderMessage("Message is too large."));
+            return;
+        }
+
+        try {
+            Map<String, String> form = decodeForm(bytes);
+            String agentName = form.getOrDefault("agentName", "").strip();
+            String messageText = form.getOrDefault("text", "").strip();
+            if (agentName.isEmpty() || messageText.isEmpty()) {
+                send(exchange, 400,
+                        view.renderMessage("Please select an agent and enter a message."));
+                return;
+            }
+            webPages.sendMessage(user, agentName, messageText);
+        } catch (IllegalArgumentException e) {
+            send(exchange, 400, view.renderMessage("Invalid recipient or message."));
+            return;
+        }
+        redirect(exchange, "/messages");
+    }
+
     private void login(HttpExchange exchange) throws IOException {
         byte[] bytes = exchange.getRequestBody().readNBytes(8193);
 
@@ -203,22 +263,7 @@ public class WebController {
             return;
         }
 
-        Map<String, String> form = new HashMap<>();
-
-        String body = new String(bytes, StandardCharsets.UTF_8);
-
-        for (String field : body.split("&")) {
-            String[] pair = field.split("=", 2);
-
-            String name = URLDecoder.decode(
-                    pair[0], StandardCharsets.UTF_8);
-
-            String value = pair.length == 2
-                    ? URLDecoder.decode(pair[1], StandardCharsets.UTF_8)
-                    : "";
-
-            form.put(name, value);
-        }
+        Map<String, String> form = decodeForm(bytes);
 
         String username = form.get("username");
         String password = form.get("password");
@@ -256,6 +301,20 @@ public class WebController {
                         + "; Path=/; HttpOnly; SameSite=Lax");
 
         redirect(exchange, "/");
+    }
+
+    private Map<String, String> decodeForm(byte[] bytes) {
+        Map<String, String> form = new HashMap<>();
+        String body = new String(bytes, StandardCharsets.UTF_8);
+        for (String field : body.split("&")) {
+            String[] pair = field.split("=", 2);
+            String name = URLDecoder.decode(pair[0], StandardCharsets.UTF_8);
+            String value = pair.length == 2
+                    ? URLDecoder.decode(pair[1], StandardCharsets.UTF_8)
+                    : "";
+            form.put(name, value);
+        }
+        return form;
     }
 
     private String sessionToken(HttpExchange exchange) {
