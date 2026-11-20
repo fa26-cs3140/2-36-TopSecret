@@ -1,9 +1,13 @@
 package controller;
 
+import model.MemorySessionStore;
+import model.SessionStore;
 import model.UserAccount;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpServer;
 import view.HtmlView;
+import view.RecordPages;
+import view.WebLayout;
 import view.WebPages;
 
 import java.io.IOException;
@@ -11,7 +15,6 @@ import java.io.UncheckedIOException;
 import java.net.InetSocketAddress;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
-import java.security.SecureRandom;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -21,6 +24,15 @@ public class WebController {
 
     public interface Pages {
         String render(String path, UserAccount user) throws Exception;
+
+        // HW7: pages that need more than an address: one record's details and the
+        // add/edit forms. params holds the query string and any posted form fields.
+        // Returns null when this is not such a page.
+        default PageResult handle(String method, String path,
+                                  Map<String, String> params,
+                                  UserAccount user) throws Exception {
+            return null;
+        }
     }
 
     private final AccountManager accounts;
@@ -28,10 +40,14 @@ public class WebController {
     private final int requestedPort;
     private final HtmlView view = new HtmlView();
 
-    private final Map<String, UserAccount> sessions =
-            new ConcurrentHashMap<>();
+    // HW7 access control: which tokens are logged in and when they were last
+    // used. A session ends after 30 minutes without a request, or when an
+    // admin deletes its token from the terminal.
+    private final SessionStore sessions;
 
-    private final SecureRandom random = new SecureRandom();
+    // The account behind each token, so it is not looked up on every request
+    private final Map<String, UserAccount> users =
+            new ConcurrentHashMap<>();
 
     private HttpServer server;
 
@@ -40,9 +56,15 @@ public class WebController {
     }
 
     public WebController(AccountManager accounts, Pages pages, int port) {
+        this(accounts, pages, port, new MemorySessionStore());
+    }
+
+    public WebController(AccountManager accounts, Pages pages, int port,
+                         SessionStore sessions) {
         this.accounts = Objects.requireNonNull(accounts);
         this.pages = Objects.requireNonNull(pages);
         this.requestedPort = port;
+        this.sessions = Objects.requireNonNull(sessions);
     }
 
     public synchronized void start() {
@@ -78,7 +100,7 @@ public class WebController {
         }
 
         server = null;
-        sessions.clear();
+        users.clear();
     }
 
     public int getPort() {
@@ -104,6 +126,11 @@ public class WebController {
             String path = exchange.getRequestURI().getPath();
             String method = exchange.getRequestMethod();
 
+            if (path.equals(WebLayout.STYLESHEET_PATH)) {
+                sendStylesheet(exchange);
+                return;
+            }
+
             if (path.equals("/login")) {
                 if (method.equals("GET")) {
                     send(exchange, 200, loginForm(""));
@@ -117,15 +144,17 @@ public class WebController {
             }
 
             if (path.equals("/logout")) {
-                if (!method.equals("POST")) {
-                    methodNotAllowed(exchange, "POST");
+                // The menu's log out link sends GET; a form may send POST
+                if (!method.equals("POST") && !method.equals("GET")) {
+                    methodNotAllowed(exchange, "GET, POST");
                     return;
                 }
 
                 String token = sessionToken(exchange);
 
                 if (token != null) {
-                    sessions.remove(token);
+                    sessions.delete(token);
+                    users.remove(token);
                 }
 
                 exchange.getResponseHeaders().add(
@@ -137,18 +166,17 @@ public class WebController {
             }
 
             boolean sendMessage = path.equals("/messages/send");
-            boolean facilityForm = path.equals("/facilities/new")
-                    || path.equals("/facilities/edit");
+            // HW7 Part B: add/edit forms for every record type
+            boolean recordForm = RecordPages.isForm(path);
 
             String allowedMethod = sendMessage ? "POST"
-                    : facilityForm ? "GET, POST" : "GET";
+                    : recordForm ? "GET, POST" : "GET";
             if (!List.of(allowedMethod.split(", ")).contains(method)) {
                 methodNotAllowed(exchange, allowedMethod);
                 return;
             }
 
-            String token = sessionToken(exchange);
-            UserAccount user = token == null ? null : sessions.get(token);
+            UserAccount user = currentUser(sessionToken(exchange));
 
             if (user == null) {
                 if (path.equals("/")) {
@@ -165,21 +193,20 @@ public class WebController {
                 return;
             }
 
-            if (facilityForm) {
-                if (!user.isAdmin()) {
-                    send(exchange, 403,
-                            view.renderMessage("Administrator access required."));
-                    return;
-                }
+            if (recordForm && !user.isAdmin()) {
+                send(exchange, 403,
+                        view.renderMessage("Administrator access required."));
+                return;
+            }
 
-                send(exchange, 501,
-                        view.renderMessage("Facility editing is still being implemented."));
+            if (recordForm || RecordPages.isDetail(path)) {
+                showRecordPage(exchange, method, path, user);
                 return;
             }
 
             boolean messageDetails = path.matches("/messages/[0-9]+");
             if (!messageDetails && !Set.of(
-                    "/", "/agents", "/facilities",
+                    "/", "/agents", "/facilities", "/countries",
                     "/briefs", "/missions", "/audit", "/messages", "/messages/new"
             ).contains(path)) {
                 send(exchange, 404,
@@ -221,12 +248,6 @@ public class WebController {
                 body = pages.render(path, user);
             }
 
-            body += """
-                    <form method="post" action="/logout">
-                        <button type="submit">Logout</button>
-                    </form>
-                    """;
-
             send(exchange, 200,
                     view.renderPage(title, body, user.isAdmin()));
 
@@ -240,6 +261,75 @@ public class WebController {
         } finally {
             exchange.close();
         }
+    }
+
+    // The logged-in user for this token, or null. Every valid request resets the
+    // session's 30 minute timer. A timed out or deleted token is no longer valid.
+    private UserAccount currentUser(String token) {
+        String username = token == null ? null : sessions.touch(token);
+
+        if (username == null) {
+            if (token != null) {
+                users.remove(token);
+            }
+            return null;
+        }
+
+        UserAccount user = users.get(token);
+
+        if (user == null) {
+            // A session that was started before this server was restarted
+            user = accounts.findUser(username);
+
+            if (user != null) {
+                users.put(token, user);
+            }
+        }
+
+        return user;
+    }
+
+    // HW7: one record's details, or an add/edit form and its saving
+    private void showRecordPage(HttpExchange exchange, String method,
+                                String path, UserAccount user) throws Exception {
+        Map<String, String> params = new HashMap<>();
+        String query = exchange.getRequestURI().getRawQuery();
+
+        if (query != null) {
+            params.putAll(decodeForm(query.getBytes(StandardCharsets.UTF_8)));
+        }
+
+        if (method.equals("POST")) {
+            byte[] bytes = exchange.getRequestBody().readNBytes(8193);
+
+            if (bytes.length > 8192) {
+                send(exchange, 413, view.renderMessage("Form too large."));
+                return;
+            }
+
+            params.putAll(decodeForm(bytes));
+        }
+
+        PageResult result = pages.handle(method, path, params, user);
+
+        if (result == null) {
+            send(exchange, 404, view.renderMessage("Page not found."));
+        } else if (result.isRedirect()) {
+            redirect(exchange, result.redirect());
+        } else {
+            send(exchange, result.status(), view.renderPage(
+                    result.title(), result.body(), user.isAdmin()));
+        }
+    }
+
+    private void sendStylesheet(HttpExchange exchange) throws IOException {
+        byte[] bytes = WebLayout.stylesheet().getBytes(StandardCharsets.UTF_8);
+
+        exchange.getResponseHeaders().set(
+                "Content-Type", "text/css; charset=UTF-8");
+
+        exchange.sendResponseHeaders(200, bytes.length);
+        exchange.getResponseBody().write(bytes);
     }
 
     private void sendMessage(HttpExchange exchange, UserAccount user) throws IOException {
@@ -298,17 +388,12 @@ public class WebController {
         String oldToken = sessionToken(exchange);
 
         if (oldToken != null) {
-            sessions.remove(oldToken);
+            sessions.delete(oldToken);
+            users.remove(oldToken);
         }
 
-        byte[] secret = new byte[32];
-        random.nextBytes(secret);
-
-        String token = Base64.getUrlEncoder()
-                .withoutPadding()
-                .encodeToString(secret);
-
-        sessions.put(token, user);
+        String token = sessions.create(user.getUsername());
+        users.put(token, user);
 
         // No Expires or Max-Age: this is a browser-session cookie.
         exchange.getResponseHeaders().add(
@@ -356,8 +441,10 @@ public class WebController {
                 <head>
                     <meta charset="UTF-8">
                     <title>Login</title>
+                    <link rel="stylesheet" href="/style.css">
                 </head>
                 <body>
+                <main>
                     <h1>TOP SECRET SYSTEM</h1>
                 """
                 + view.renderMessage(error)
@@ -377,6 +464,7 @@ public class WebController {
                         <br>
                         <button type="submit">Login</button>
                     </form>
+                </main>
                 </body>
                 </html>
                 """;
