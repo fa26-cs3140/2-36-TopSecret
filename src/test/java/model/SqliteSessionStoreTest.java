@@ -166,6 +166,44 @@ class SqliteSessionStoreTest {
         assertNull(store.touch(token));
     }
 
+    @Test
+    void storeWithTheRealClockWorksRightAway() {
+        SqliteSessionStore live = new SqliteSessionStore(dir.resolve("live.db"));
+        String token = live.create("smayan");
+
+        assertEquals("smayan", live.touch(token));
+        assertEquals(1, live.list().size());
+    }
+
+    @Test
+    void tokensAreLongRandomHexStrings() {
+        String token = store.create("smayan");
+
+        assertTrue(token.matches("[0-9a-f]{32}"), token);
+    }
+
+    @Test
+    void sameUserCanHaveSessionsInTwoBrowsers() {
+        String laptop = store.create("smayan");
+        String phone = store.create("smayan");
+
+        store.delete(laptop);
+
+        assertNull(store.touch(laptop));
+        assertEquals("smayan", store.touch(phone));
+    }
+
+    @Test
+    void sessionsWithTheSameActivityTimeKeepLoginOrder() {
+        store.create("ghost");
+        store.create("smayan");
+
+        List<WebSession> sessions = store.list();
+
+        assertEquals("ghost", sessions.get(0).getUsername());
+        assertEquals("smayan", sessions.get(1).getUsername());
+    }
+
     // A clock the tests can move forward to check the timeout
     private static class TestClock extends Clock {
         private Instant now;
