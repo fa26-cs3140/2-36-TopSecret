@@ -30,6 +30,7 @@ public class TopSecret {
                 "Options:",
                 "  (none)              Log in and open the system menus",
                 "  -h                  Show this help text and exit",
+                "  -web                Start the web interface at http://localhost:3002/",
                 "  --change-password   Change your password and exit");
     }
 
@@ -42,101 +43,6 @@ public class TopSecret {
         }
 
         Scanner scanner = new Scanner(System.in);
-
-        try {
-            AccountManager accounts = new AccountManager(new CipheredUserStore());
-            LoginHandler loginHandler = new LoginHandler(accounts, scanner, System.out);
-
-            // Allow users to change their password.
-            if (args.length == 1 && args[0].equals("--change-password")) {
-                loginHandler.changePassword();
-                return;
-            }
-
-            // Reject unknown command-line arguments.
-            if (args.length != 0) {
-                System.out.println("Unknown command.");
-                return;
-            }
-
-            // Require login before accessing mission briefs.
-            UserAccount user = loginHandler.authenticate();
-            if (user == null) {
-                return;
-            }
-
-            System.out.println("Access granted.");
-
-            // Start the interactive menu. The database supplies the missions and search,
-            // and every read or create is written to the audit log for this user.
-
-            MissionStore store = new SqliteMissionStore();
-            AuditLog audit = new SqliteAuditLog(
-                    SqliteMissionStore.DEFAULT_DB_FILE);
-
-            try (Connection connection = DriverManager.getConnection(
-                    "jdbc:sqlite:" + SqliteMissionStore.DEFAULT_DB_FILE)) {
-
-                ModelDatabase database = new ModelDatabase(connection);
-                database.createTables();
-                database.importSampleData(Path.of("database"));
-
-                Homework5Menu homework5Menu = new Homework5Menu(
-                        database,
-                        scanner,
-                        System.out,
-                        audit,
-                        accounts,
-                        user,
-                        user.isAdmin()
-                );
-
-                // Messages for agents (Member D). Uses the same database file.
-                MessageMenu messageMenu = new MessageMenu(
-                        new SqliteMessageStore(SqliteMissionStore.DEFAULT_DB_FILE),
-                        database, audit, user, scanner, System.out);
-                messageMenu.printInboxNotice();
-
-                while (true) {
-                    System.out.println("\n=== TOP SECRET SYSTEM ===");
-                    System.out.println("1. Existing Mission Menu");
-                    System.out.println("2. Homework 5 Records Menu");
-                    System.out.println("3. Messages");
-                    System.out.println("0. Logout");
-                    System.out.print("Choose an option: ");
-
-                    if (!scanner.hasNextLine()) {
-                        break;
-                    }
-
-                    String choice = scanner.nextLine().trim();
-
-                    switch (choice) {
-                        case "1" -> new MissionMenu(
-                                store, store, scanner, System.out,
-                                audit, accounts, user).run();
-
-                        case "2" -> homework5Menu.run();
-
-                        case "3" -> messageMenu.run();
-
-                        case "0" -> {
-                            System.out.println("Goodbye!");
-                            return;
-                        }
-
-                        default -> System.out.println(
-                                "Invalid choice. Try again.");
-                    }
-                }
-
-            } catch (SQLException e) {
-                System.out.println("Database error: " + e.getMessage());
-            }
-
-        } catch (IllegalArgumentException | IllegalStateException | UncheckedIOException e) {
-            System.out.println("Error: " + e.getMessage());
-        }
 
         try {
             AccountManager accounts = new AccountManager(new CipheredUserStore());
@@ -171,19 +77,9 @@ public class TopSecret {
                         webDatabase.createTables();
                         webDatabase.importSampleData(Path.of("database"));
 
-                        // HW7 Part C: Connect messages to the web interface.
-                        SqliteMessageStore webMessages = new SqliteMessageStore(
-                                SqliteMissionStore.DEFAULT_DB_FILE);
-
                         WebController web = new WebController(
                                 accounts,
-                                new WebPages(
-                                        webConnection,
-                                        webStore,
-                                        webAudit,
-                                        webMessages
-                                )
-                        );
+                                new WebPages(webConnection, webStore, webAudit));
 
                         web.start();
 
