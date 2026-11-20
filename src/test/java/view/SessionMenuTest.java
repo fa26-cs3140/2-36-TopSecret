@@ -4,7 +4,6 @@ import model.AuditEntry;
 import model.AuditLog;
 import model.SessionStore;
 import model.WebSession;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayOutputStream;
@@ -17,8 +16,6 @@ import java.util.Scanner;
 import static org.junit.jupiter.api.Assertions.*;
 
 // Tests for the admin web session menu (Member D).
-// Disabled until SessionMenu is implemented.
-@Disabled("SessionMenu is not implemented yet")
 class SessionMenuTest {
 
     private final FakeSessions sessions = new FakeSessions();
