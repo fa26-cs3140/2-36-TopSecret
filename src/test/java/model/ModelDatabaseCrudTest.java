@@ -117,7 +117,9 @@ class ModelDatabaseCrudTest {
     void importLoadsSampleDataOnceAndGivesEveryAgentAFacility() throws Exception {
         Path data = Path.of("database");
         int added = db.importSampleData(data);
-        assertEquals(6 + 10 + 100, added);
+        assertEquals(196 + 6 + 10 + 100, added); // countries, facilities, agents, briefs
+        assertEquals("Afghanistan", db.getCountries().get(0).getName());
+        assertEquals(196, db.getCountries().size());
         assertEquals("Blackwood Annex", db.getFacilities().get(0).getName());
         assertEquals("BA", db.getFacilities().get(0).getAbbreviation());
         assertEquals("Vanguard", db.getAgents().get(0).getName());
