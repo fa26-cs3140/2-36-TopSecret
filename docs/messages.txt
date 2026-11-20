@@ -1,4 +1,4 @@
-MESSAGES FOR AGENTS (Team Member D, Homework 6)
+MESSAGES FOR AGENTS (terminal: Homework 6, web messaging center: Homework 7)
 
 What it does
   Any logged-in user can leave a message for an agent from the terminal.
@@ -6,7 +6,7 @@ What it does
   agent's name (case does not matter). When that user logs in, the program
   says how many messages they have, and they can read them. No other user
   can see them. Admin access is not needed to send or read messages.
-  Messages are terminal only; they are not shown in the web view.
+  Since Homework 7 the same messages are also in the web view (see below).
 
 How to use it (terminal)
   After login, the main menu has "3. Messages":
@@ -17,13 +17,23 @@ How to use it (terminal)
   adds user "Ghost" (or "ghost"). Ghost logs in, creates a password, sees
   "You have 1 message", and reads it under Messages.
 
+How to use it (web view, Homework 7, Team Member C)
+  "Messages" is in the menu for every user.
+    My Messages       the messages addressed to your own username, each marked
+                      Read or Unread, with the sender and the date
+    View Message      shows the message and marks it as read
+    Compose Message   pick an agent from the drop down, type the message, send
+  Only the user whose username is the agent's name can see that agent's
+  messages. There are no reply or delete controls. Admin access is not needed.
+
 Database table (created by SqliteMessageStore, in database/missions.db)
   CREATE TABLE IF NOT EXISTS messages (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       agent_id INTEGER NOT NULL REFERENCES agents(id) ON DELETE CASCADE,
       sender TEXT NOT NULL,      -- username of the user who wrote it
       text TEXT NOT NULL,
-      sent_at TEXT NOT NULL      -- e.g. 2026-10-29T14:10:00
+      sent_at TEXT NOT NULL,     -- e.g. 2026-10-29T14:10:00
+      is_read INTEGER NOT NULL DEFAULT 0   -- 1 after the recipient opens it (Homework 7)
   );
   - A message always points at a real agent, so it can never be orphaned.
   - Deleting an agent deletes their messages (CASCADE).
@@ -35,13 +45,18 @@ Audit log
   Reading:  READ    "Message #<id>"   (one entry per message shown)
 
 Classes
-  Message                  one message (id, agent name, sender, text, time sent)
-  MessageStore (interface) send(sender, agentName, text), getMessagesFor(username)
+  Message                  one message (id, agent name, sender, text, time sent, read)
+  MessageStore (interface) send(sender, agentName, text), getMessagesFor(username),
+                           getMessagesForExactRecipient(username),
+                           getMessage(id, username), markAsRead(id, username)
   SqliteMessageStore       MessageStore saved in the SQLite database
   MessageMenu              terminal menu for sending and reading messages
+  HtmlView, WebPages       web inbox, message page, and compose form
+  WebController            routes /messages, /messages/new, /messages/send, /messages/<id>
 
 Tests
   Unit:        MessageTest, SqliteMessageStoreTest,
                MessageMenuTest (Mockito mocks MessageStore and AuditLog)
   Integration: MessageMenuSqliteMessageStoreTest (full workflow: send to Ghost,
                create account Ghost, log in, read; other users see nothing)
+  Web:         WebControllerTest (send and read over HTTP as the recipient only)
