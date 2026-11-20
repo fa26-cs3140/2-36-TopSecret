@@ -1,7 +1,6 @@
 package model;
 
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -17,8 +16,6 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.*;
 
 // Tests for web session timeout and the admin session list (Member D).
-// Disabled until SqliteSessionStore is implemented.
-@Disabled("SqliteSessionStore is not implemented yet")
 class SqliteSessionStoreTest {
 
     @TempDir
