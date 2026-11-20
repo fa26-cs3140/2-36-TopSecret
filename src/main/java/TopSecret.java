@@ -6,11 +6,15 @@ import view.Homework5Menu;
 import controller.LoginHandler;
 import view.MessageMenu;
 import view.MissionMenu;
+import view.SearchMenu;
+import view.SessionMenu;
 import model.MissionStore;
 import model.ModelDatabase;
+import model.RecordSearch;
 import model.SqliteAuditLog;
 import model.SqliteMessageStore;
 import model.SqliteMissionStore;
+import model.SqliteSessionStore;
 import model.UserAccount;
 import controller.WebController;
 import view.WebPages;
@@ -77,9 +81,24 @@ public class TopSecret {
                         webDatabase.createTables();
                         webDatabase.importSampleData(Path.of("database"));
 
+                        // HW7 Part C: Connect messages to the web interface.
+                        SqliteMessageStore webMessages = new SqliteMessageStore(
+                                SqliteMissionStore.DEFAULT_DB_FILE);
+
+                        // HW7 access control: sessions are saved in the database so
+                        // an admin can list and delete them from the terminal.
                         WebController web = new WebController(
                                 accounts,
-                                new WebPages(webConnection, webStore, webAudit));
+                                new WebPages(
+                                        webConnection,
+                                        webStore,
+                                        webAudit,
+                                        webMessages
+                                ),
+                                WebController.PORT,
+                                new SqliteSessionStore(
+                                        SqliteMissionStore.DEFAULT_DB_FILE)
+                        );
 
                         web.start();
 
@@ -154,13 +173,23 @@ public class TopSecret {
                 AssignmentMenu assignmentMenu = new AssignmentMenu(
                         database, scanner, System.out, audit);
 
+                // HW7 (Member D): search every text field, and web session control
+                SearchMenu searchMenu = new SearchMenu(
+                        new RecordSearch(database), audit,
+                        user.getUsername(), scanner, System.out);
+                SessionMenu sessionMenu = new SessionMenu(
+                        new SqliteSessionStore(SqliteMissionStore.DEFAULT_DB_FILE),
+                        audit, user.getUsername(), scanner, System.out);
+
                 while (true) {
                     System.out.println("\n=== TOP SECRET SYSTEM ===");
                     System.out.println("1. Existing Mission Menu");
                     System.out.println("2. Homework 5 Records Menu");
                     System.out.println("3. Messages");
+                    System.out.println("4. Search All Records");
                     if (user.isAdmin()) {
-                        System.out.println("4. Missions and Assignments");
+                        System.out.println("5. Missions and Assignments");
+                        System.out.println("6. Web Sessions");
                     }
                     System.out.println("0. Logout");
                     System.out.print("Choose an option: ");
@@ -180,9 +209,19 @@ public class TopSecret {
 
                         case "3" -> messageMenu.run();
 
-                        case "4" -> {
+                        case "4" -> searchMenu.run();
+
+                        case "5" -> {
                             if (user.isAdmin()) {
                                 assignmentMenu.run(user.getUsername());
+                            } else {
+                                System.out.println("Invalid choice. Try again.");
+                            }
+                        }
+
+                        case "6" -> {
+                            if (user.isAdmin()) {
+                                sessionMenu.run();
                             } else {
                                 System.out.println("Invalid choice. Try again.");
                             }
