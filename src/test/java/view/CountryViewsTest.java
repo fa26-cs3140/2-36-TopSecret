@@ -102,4 +102,25 @@ class CountryViewsTest {
         assertTrue(html.contains("<nav"));
         assertTrue(html.contains("href=\"" + WebLayout.STYLESHEET_PATH + "\""));
     }
+
+    // ---------- Bodies without the page around them ----------
+
+    @Test
+    void facilityBodyHasDetailsButNoMenu() {
+        String html = CountryViews.facilityBody(
+                new model.Facility(3, "Oslo Station", "OSL", 5), new model.Country(5, "Norway"));
+
+        assertTrue(html.contains("Oslo Station"));
+        assertTrue(html.contains("href=\"/countries/5\""));
+        assertFalse(html.contains("<nav"));
+    }
+
+    @Test
+    void countryListBodyHasLinksButNoMenu() {
+        String html = CountryViews.countryListBody(
+                java.util.List.of(new model.Country(5, "Norway")));
+
+        assertTrue(html.contains("href=\"/countries/5\""));
+        assertFalse(html.contains("<nav"));
+    }
 }
