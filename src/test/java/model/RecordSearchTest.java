@@ -2,7 +2,6 @@ package model;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import java.sql.Connection;
@@ -13,8 +12,6 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.*;
 
 // Tests for search across all text fields (Member D).
-// Disabled until RecordSearch is implemented.
-@Disabled("RecordSearch is not implemented yet")
 class RecordSearchTest {
 
     private Connection connection;
