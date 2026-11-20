@@ -1,3 +1,60 @@
+CHANGE NOTES - Homework 7
+
+Web view: styling, menu, and countries (Team Member A, view)
+  - view.WebLayout holds the page layout, the menu, and the stylesheet
+    (CSS only, no JavaScript, no images). The stylesheet is served at /style.css.
+  - Every page has the same menu with a Log out link. Admins also get Audit Log.
+  - New Country records (model.Country, countries table). A facility belongs to
+    zero or one country. The supplied list is imported from database/countries.tsv
+    when the database is first created.
+  - Countries can be listed, viewed, added, and edited. A facility's page shows
+    its country, and the facility form can change it.
+  - "java TopSecret -h" prints the command line help.
+
+Web view: adding and editing records (Team Member B, control)
+  - Admins can add and edit agents, facilities, briefs, missions, and countries:
+      /agents/new            empty form
+      /agents/edit?id=7      form filled with the current values
+    (the same addresses work for facilities, briefs, missions, countries).
+  - Saving goes back to the record's page. Missing required fields show the form
+    again with a message and the entered values.
+  - Standard users get "Administrator access required" (403).
+  - Users and passwords are still managed in the terminal only.
+  - controller.WebController routes the requests, view.RecordPages builds the
+    pages, and controller.PageResult carries a page or a redirect between them.
+
+Web messaging center (Team Member C)
+  - Messages is in the menu for every user. A user sees the messages addressed
+    to their own username, each marked Read or Unread.
+  - Opening a message shows it and marks it as read (messages.is_read).
+  - "Compose Message" has a drop down of agents and a text box.
+
+Model, audit, related records, search, and access control (Team Member D)
+  - model.RecordEditor creates and updates every record type for the web forms
+    and writes each change to the audit log (CREATE or UPDATE with the record id).
+    Viewing a record in the web view is audited as READ.
+  - model.RelatedRecords finds related records. In the web view a facility shows
+    its country, agents, and missions; an agent shows its facility and missions;
+    a mission shows its facility, agents, and briefs; a brief shows its mission;
+    a country shows its facilities. Every related item is a link.
+  - Search: main menu "4. Search All Records" (model.RecordSearch, view.SearchMenu)
+    looks in every text field of missions, briefs, agents, facilities, and
+    countries. Terminal only.
+  - Access control: a web session is valid for 30 minutes after its last request
+    (model.SessionStore). Sessions are saved in the web_sessions table so the
+    terminal can see them while the web server is running.
+  - Main menu "6. Web Sessions" (admins, view.SessionMenu) lists every session
+    (user, token, last activity) and deletes one. The browser using a deleted
+    token must log in again. Deleting a session is audited.
+
+Refactoring (team)
+  - TopSecret.main had its body duplicated, which hid the -web option. It is one
+    flow again.
+  - The web pages now share one layout (WebLayout) instead of each building its
+    own HTML page, and the list pages link to each record.
+  - Web sessions moved out of WebController into SessionStore.
+
+
 CHANGE NOTES - Homework 6
 
 Architecture: Model-View-Controller (team)

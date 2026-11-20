@@ -118,7 +118,7 @@ A mission (missions table) is run by exactly one facility (mission_facilities).
 Agents belong to one facility, but any agent can be assigned to many missions,
 including missions run by another facility (joint operations, mission_agents).
 A mission has zero or more briefs (mission_briefs). Assignments are made in the
-terminal under "4. Missions and Assignments" (admins only).
+terminal under "5. Missions and Assignments" (admins only).
 
 CREATE TABLE IF NOT EXISTS mission_briefs (
     mission_id INTEGER NOT NULL,
@@ -131,10 +131,39 @@ CREATE TABLE IF NOT EXISTS mission_briefs (
   SqliteMissionStore, not ModelDatabase); AssignmentMenu checks that the mission
   exists before attaching a brief.
 
+Homework 7: Countries (Team Member A, created by ModelDatabase.createTables())
+==========================================================================
+CREATE TABLE IF NOT EXISTS countries (
+    id INTEGER PRIMARY KEY,
+    name TEXT NOT NULL UNIQUE COLLATE NOCASE
+);
+- facilities has a new column:
+    country_id INTEGER REFERENCES countries(id) ON DELETE RESTRICT
+  A facility has zero or one country (NULL = none). A country has zero or more
+  facilities. An older database gets the column added automatically.
+- database/countries.tsv (one name per line) is imported when the table is empty.
+
+Homework 7: Web sessions (Team Member D, created by SqliteSessionStore)
+==========================================================================
+CREATE TABLE IF NOT EXISTS web_sessions (
+    token TEXT PRIMARY KEY,
+    username TEXT NOT NULL,
+    last_activity INTEGER NOT NULL      -- milliseconds since 1970
+);
+- One row per logged-in browser. username refers to an account in users.cip.
+- Every request updates last_activity. A row older than 30 minutes is removed
+  the next time sessions are checked or listed.
+- An admin deletes a row from the terminal ("6. Web Sessions") to force that
+  browser to log in again.
+
+Homework 7: Messages (Team Member C)
+- messages has a new column: is_read INTEGER NOT NULL DEFAULT 0
+  (1 after the recipient opens the message in the web view).
+
 Where data lives
 - Every table above is in database/missions.db (created on first run).
 - User accounts and passwords are NOT in the database: they are ciphered in
   users.cip with each user's ADMIN or STANDARD level (see
-  docs/accounts_audit.txt). audit_log.username and messages.sender refer to
-  those usernames.
+  docs/accounts_audit.txt). audit_log.username, messages.sender, and
+  web_sessions.username refer to those usernames.
 - The full diagram is docs/UML_ERD.pdf.
