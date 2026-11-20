@@ -428,6 +428,46 @@ public class ModelDatabase {
                 name, abbreviation, id) > 0;
     }
 
+    // ---------- HW7: creating and updating for the web forms (Member D) ----------
+
+    // Adds a country and returns its id. Names are unique, ignoring case.
+    public int addCountry(String name) throws SQLException {
+        execute("INSERT INTO countries(name) VALUES (?)", name);
+        return getLastInsertId();
+    }
+
+    // Renames a country. Facilities keep pointing at it, so they show the new name.
+    public boolean updateCountry(int id, String name) throws SQLException {
+        return execute("UPDATE countries SET name=? WHERE id=?", name, id) > 0;
+    }
+
+    // Assigns a facility to a country. A countryId of 0 means no country.
+    public boolean setFacilityCountry(int facilityId, int countryId) throws SQLException {
+        if (countryId == 0) {
+            return execute("UPDATE facilities SET country_id=NULL WHERE id=?", facilityId) > 0;
+        }
+        requireExists("countries", countryId, "country");
+        return execute("UPDATE facilities SET country_id=? WHERE id=?",
+                countryId, facilityId) > 0;
+    }
+
+    // Changes a mission's own fields and the facility that runs it.
+    // Its agents and briefs are not touched.
+    public boolean updateMission(int id, String title, String brief, String date,
+                                 int facilityId) throws SQLException {
+        if (title == null || title.isBlank())
+            throw new IllegalArgumentException("Mission title is required");
+        requireExists("facilities", facilityId, "facility");
+        if (execute("UPDATE missions SET title=?, brief=?, date=? WHERE id=?",
+                title.trim(), brief == null ? "" : brief, date, id) == 0) {
+            return false;
+        }
+        execute("DELETE FROM mission_facilities WHERE mission_id=?", id);
+        execute("INSERT INTO mission_facilities(mission_id,facility_id) VALUES (?,?)",
+                id, facilityId);
+        return true;
+    }
+
     // ---------- Deleting (integrity is kept by the foreign keys) ----------
 
     // Deletes a brief. Returns false if there was no brief with this id.
